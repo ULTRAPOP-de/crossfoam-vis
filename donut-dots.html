@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+  const width = 1000;
+  const height = 1000;
+  const innerRadius = 50;
+  const outerRadius = 85;
+
+  const svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", [0, 0, width, height]);
+
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${width/2}, ${height/2})`);
+
+  g.append("circle")
+    .attr("r", innerRadius)
+    .style("fill", "transparent")
+    .style("stroke", "black");
+
+  g.append("circle")
+    .attr("r", outerRadius)
+    .style("fill", "transparent")
+    .style("stroke", "black");
+
+  const nodes = d3.range(15000).map((d) => { return {id:d}; });
+  nodes.push({
+    fx:0,
+    fy:0,
+    x:0,
+    y:0,
+    fixed:true
+  });
+
+  let node = g.selectAll("circle")
+    .data(nodes)
+    .enter().append("circle")
+      .attr("r", (d) => (d.fixed)?innerRadius:2.5)
+      .style("fill", (d) => (d.fixed)?"transparent":"black");
+
+  const ticked = () => {
+    node
+      .attr("cx", function(d) { return d.x; })
+      .attr("cy", function(d) { return d.y; });    
+  };
+
+  let inter;
+
+  const simulation = d3.forceSimulation(nodes)
+    .alphaDecay(0.1)
+    .force("charge", d3.forceCollide().radius((d) => (d.fixed)?innerRadius:5))
+    .force("r", d3.forceRadial(innerRadius + (outerRadius-innerRadius) / 2))
+    .on("end", function (){
+      node
+        .attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+
+      simulation
+        .on("tick", ticked);
+
+      if (nodes.length < 300) {
+        inter = setInterval(addNode, 100);
+      }
+
+    });
+
+  const pX = (r, theta) => {
+    return r * Math.cos(theta);
+  };
+
+  const pY = (r, theta) => {
+    return r * Math.sin(theta);
+  };
+
+  const addNode = () => {
+    const extraRadius = Math.random() * 20;
+    const theta = Math.random() * Math.PI * 2;
+    nodes.push({
+      x:pX(outerRadius + extraRadius, theta),
+      y:pY(outerRadius + extraRadius, theta)
+    });
+
+    restart();
+
+    if (nodes.length > 300) {
+      clearInterval(inter);
+    }
+  };
+
+  const restart = () => {
+    node = node.data(nodes);
+    node.exit().remove();
+    node = node.enter().append("circle")
+      .attr("r", 2.5)
+      .style("fill", "red")
+      .attr("cy", nodes[nodes.length - 1].y)
+      .attr("cx", nodes[nodes.length - 1].x)
+      .merge(node);
+
+    simulation.nodes(nodes);
+    simulation.alpha(1).restart();
+  };
+
+</script>
+</body>
+</html>

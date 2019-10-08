@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+  const data = {"handle":"visapnet", "image": "https://pbs.twimg.com/profile_images/713363280639696896/fFfMl1-p_normal.jpg", "image1":"https://pbs.twimg.com/profile_images/1104811722496503808/O1-xqcq-_normal.png","name":"VISAP"};
+
+  const size = 48;
+
+  const svg = d3.select("body")
+    .append("svg")
+      .style("overflow", "visible")
+      .attr("width", size)
+      .attr("height", size);
+
+  svg.append("defs")
+    .append("clipPath")
+      .attr("id", "userClip")
+      .append("circle")
+        .attr("cx", size/2)
+        .attr("cy", size/2)
+        .attr("r", (size-4)/2)
+        .style("fill", "black");
+
+  svg.append("image")
+    .attr("xlink:href", data.image)
+    .style("width", size)
+    .style("height", size)
+    .attr("clip-path", "url(#userClip)");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${size/2}, ${size/2})`);
+
+  g.append("circle")
+    .attr("r", (size-4)/2)
+    .style("fill", "transparent")
+    .style("stroke", "rgba(0,0,0,0.1)");
+
+  g.append("circle")
+    .attr("r", size/2)
+    .style("fill", "transparent")
+    .style("stroke", "rgba(0,0,0,0.5)");
+
+
+</script>
+</body>
+</html>

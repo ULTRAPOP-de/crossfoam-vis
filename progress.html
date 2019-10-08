@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+  svg{
+    margin:100px 0 0 100px;
+  }
+</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+  const size = 200;
+
+  const svg = d3.select("body")
+    .append("svg")
+      .style("overflow", "visible")
+      .attr("width", size*2)
+      .attr("height", size*2);
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${size}, ${size})`);
+
+  g.append("circle")
+    .attr("r", size/2)
+    .style("fill", "transparent")
+    .style("stroke", "rgba(0,0,0,0.5)");
+
+  const tau = 2 * Math.PI;
+
+  const arc = d3.arc()
+      .innerRadius(size/2)
+      .outerRadius(size/2+5)
+      .startAngle(0);
+
+  const arcShape = g.append("path")
+      .datum({endAngle: 0})
+      .style("fill", "black")
+      .attr("d", arc);
+
+  d3.interval(() => {
+    arcShape.transition()
+        .duration(750)
+        .attrTween("d", arcTween(Math.random() * tau));
+  }, 1500);
+
+  const arcTween = (newAngle) => {
+    return (d) => {
+      const interpolate = d3.interpolate(d.endAngle, newAngle);
+      return (t) => {
+        d.endAngle = interpolate(t);
+        return arc(d);
+      };
+    };
+  };
+
+  const textRadius = size+15;
+
+  svg.append("defs")
+    .append("path")
+      .attr("id", "textPath")
+      .attr("transform", `translate(${size}, ${size})`)
+      .attr("d", `M0,${textRadius/2} a${textRadius/2},${textRadius/2} 0 0,1 0,-${textRadius}a${textRadius/2},${textRadius/2} 0 0,1 0,${textRadius}Z`);
+
+  svg.append('text')
+    .append('textPath')
+    .attr("startOffset", '50%')
+    .attr("xlink:href", "#textPath")
+    .style("font-family", "Helvetica, Arial, sans-serif")
+    .style("font-size", "12px")
+    .text('300 friends — 50%');
+
+</script>
+</body>
+</html>

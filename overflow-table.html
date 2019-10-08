@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+  
+  #container{
+    width:500px;
+    border:2px solid blue;
+  }
+
+  table{
+    width:100%;
+  }
+
+  td.icon svg{
+    display: block;
+    width:50px;
+    overflow:visible;
+  }
+
+  td.icon{
+    overflow: visible;
+  }
+
+  td.label{
+    padding-left:15px;
+  }
+
+  td{
+    border:1px solid black;
+  }
+
+</style>
+</head>
+<body>
+<div id="container">
+  <table>
+    <tr>
+      <td class="icon" width="50"></td>
+      <td class="label">Sebastian Meier</td>
+    </tr>
+    <tr>
+      <td class="icon" width="50"></td>
+      <td class="label">Daniel Lommes</td>
+    </tr>
+  </table>
+</div>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+d3.selectAll(".icon").append("svg")
+  .attr("width", 50)
+  .attr("height", 50)
+  .append("g")
+    .attr("transform", "translate(25, 25)")
+    .append("circle")
+      .attr("r", (d) => 10 + Math.random() * 100)
+      .style("fill", "rgba(255,0,0,0.2)");
+
+</script>
+</body>
+</html>

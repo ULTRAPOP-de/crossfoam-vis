@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+</head>
+<body>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+
+  const width = 1000;
+  const height = 1000;
+  const radius = 10;
+
+  const svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", [0, 0, width, height]);
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${width/2}, ${height/2})`);
+
+  const pX = (r, theta) => {
+    return r * Math.cos(theta);
+  };
+
+  const pY = (r, theta) => {
+    return r * Math.sin(theta);
+  };
+  
+  const data = [];
+
+  let rotation = 0;
+
+  const sphereCount = 3;
+
+  for(let i = 0; i < sphereCount; i += 1){
+    data.push({
+      offset: Math.PI*2/sphereCount * i,
+      radius: radius,
+      size: -5
+    })
+  }
+
+  const color = "#338498";
+
+  const circles = g.append("g").selectAll("circle")
+    .data(data)
+    .enter()
+    .append("circle")
+      .style("fill", "white")
+      .style("stroke", color);
+
+  const update = () => {
+    rotation += 0.1;
+    if (rotation >= Math.PI * 2) {
+      rotation = 0;
+    }
+
+    circles
+      .data(data)
+      .attr("cy", d => pY(radius + d.radius * (1 + Math.sin(rotation * 2))/2, d.offset + rotation))
+      .attr("cx", d => pX(radius + d.radius * (1 + Math.sin(rotation * 2))/2, d.offset + rotation))
+      .attr("r", d => d.size * (1 + Math.sin(rotation * 2))/2 + radius);
+  };
+
+  const inter = setInterval(update, 30);
+
+  g.append("circle")
+    .attr("r", radius+3)
+    .style("fill", "white");
+
+  g.append("circle")
+    .attr("r", radius)
+    .style("fill", "white")
+    .style("stroke", color);
+
+  g.append("circle")
+    .attr("r", 5)
+    .style("fill", color)
+    .style("stroke", "transparent");
+
+  // g.append("text")
+  //   .text("Crossfoam")
+  //   .attr("transform", "translate(-7.5, 6.5)")
+  //   .style("font-family", "Inter")
+  //   .style("font-weight", "bold")
+  //   .style("font-size", "18px")
+  //   .style("fill", "black")
+  //   .style("opacity", 0)
+  //   .transition()
+  //     .duration(500)
+  //     .ease(d3.easeCubicOut)
+  //     .style("opacity", 1)
+  //     .attr("transform", "translate(20, 6.5)");
+
+
+</script>
+</body>
+</html>
