@@ -1,6 +1,6 @@
-import * as cfData from "crossfoam-dev-data";
-import { blockSplash, colorPicker, formatNumber, isRetinaDisplay } from "crossfoam-dev-ui-helpers";
-import { uuid } from "crossfoam-dev-utils";
+import * as cfData from "@crossfoam/data";
+import { blockSplash, colorPicker, formatNumber, isRetinaDisplay } from "@crossfoam/ui-helpers";
+import { uuid } from "@crossfoam/utils";
 import * as d3 from "d3";
 
 class Vis {

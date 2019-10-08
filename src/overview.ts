@@ -1,6 +1,6 @@
+import { formatNumber } from "@crossfoam/ui-helpers";
+import { debounce } from "@crossfoam/utils";
 import { install as pixiInstall } from "@pixi/unsafe-eval";
-import { formatNumber } from "crossfoam-dev-ui-helpers";
-import { debounce } from "crossfoam-dev-utils";
 import * as d3 from "d3";
 import * as PIXI from "pixi.js";
 import { Vis } from "./vis";

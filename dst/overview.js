@@ -12,10 +12,17 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var ui_helpers_1 = require("@crossfoam/ui-helpers");
+var utils_1 = require("@crossfoam/utils");
 var unsafe_eval_1 = require("@pixi/unsafe-eval");
-var crossfoam_dev_ui_helpers_1 = require("crossfoam-dev-ui-helpers");
-var crossfoam_dev_utils_1 = require("crossfoam-dev-utils");
 var d3 = require("d3");
 var PIXI = require("pixi.js");
 var vis_1 = require("./vis");
@@ -40,7 +47,7 @@ var OverviewVis = /** @class */ (function (_super) {
             browser.i18n.getMessage("helpOverview_7"),
             browser.i18n.getMessage("helpOverview_8"),
         ];
-        _this_1.paint = crossfoam_dev_utils_1.debounce(function () {
+        _this_1.paint = utils_1.debounce(function () {
             // Only SVG Overlay...
             _this_1.g.attr("transform", "translate(" + _this_1.canvasTransform.x + "," + _this_1.canvasTransform.y + ")                               scale(" + _this_1.canvasTransform.k + ")");
             _this_1.glContainer.x = _this_1.canvasTransform.x;
@@ -78,7 +85,7 @@ var OverviewVis = /** @class */ (function (_super) {
                 d[2],
             ];
         });
-        this.glNodes = data.proxies.concat(tempLeafs);
+        this.glNodes = __spreadArrays(data.proxies, tempLeafs);
         this.paintNodes = data.nodes;
         this.paintCluster = data.cluster;
         unsafe_eval_1.install(PIXI);
@@ -112,7 +119,7 @@ var OverviewVis = /** @class */ (function (_super) {
             .style("font-family", "Helvetica, Arial, sans-serif")
             .style("font-size", "12px")
             .style("text-anchor", "middle")
-            .html("&darr;&nbsp;" + crossfoam_dev_ui_helpers_1.formatNumber(data.nodes.length, browser.i18n.getUILanguage()) + " " + browser.i18n.getMessage("friends"));
+            .html("&darr;&nbsp;" + ui_helpers_1.formatNumber(data.nodes.length, browser.i18n.getUILanguage()) + " " + browser.i18n.getMessage("friends"));
         this.svg.append("text")
             .append("textPath")
             .attr("startOffset", "25%")
@@ -120,7 +127,7 @@ var OverviewVis = /** @class */ (function (_super) {
             .style("font-family", "Helvetica, Arial, sans-serif")
             .style("font-size", "12px")
             .style("text-anchor", "middle")
-            .html("&darr;&nbsp;" + crossfoam_dev_ui_helpers_1.formatNumber(data.proxies.length, browser.i18n.getUILanguage()) + " " + browser.i18n.getMessage("sharedFiendsOfFriends"));
+            .html("&darr;&nbsp;" + ui_helpers_1.formatNumber(data.proxies.length, browser.i18n.getUILanguage()) + " " + browser.i18n.getMessage("sharedFiendsOfFriends"));
         this.svg.append("image")
             .attr("transform", "translate(-" + imageSize / 2 + ", -" + imageSize / 2 + ")")
             .attr("xlink:href", centralNode.image)
@@ -187,7 +194,7 @@ var OverviewVis = /** @class */ (function (_super) {
                 _this_1.container.selectAll("#tooltip").remove();
             }
         });
-        this.clickNodes = data.nodes.concat(data.proxies);
+        this.clickNodes = __spreadArrays(data.nodes, data.proxies);
         this.container.append("div")
             .attr("id", "overview-legend")
             .html("<img src=\"../assets/images/vis--overview--legend.png\"       srcset=\"../assets/images/vis--overview--legend.png 1x,       ../assets/images/vis--overview--legend@2x.png 2x\">");

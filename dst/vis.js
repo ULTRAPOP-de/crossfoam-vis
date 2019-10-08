@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var cfData = require("crossfoam-dev-data");
-var crossfoam_dev_ui_helpers_1 = require("crossfoam-dev-ui-helpers");
-var crossfoam_dev_utils_1 = require("crossfoam-dev-utils");
+var cfData = require("@crossfoam/data");
+var ui_helpers_1 = require("@crossfoam/ui-helpers");
+var utils_1 = require("@crossfoam/utils");
 var d3 = require("d3");
 var Vis = /** @class */ (function () {
     function Vis() {
@@ -99,7 +99,7 @@ var Vis = /** @class */ (function () {
             .html((data[15] === null) ? "Sorry, we have the real username of this person." : data[15]);
         contentHolder.append("span")
             .attr("class", "tooltip--bottomLine")
-            .html(((data[3] !== 0 || data[2] !== 0) ? "Friends:" + crossfoam_dev_ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " | Followers:" + crossfoam_dev_ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | " : "") + ("Connections:" + crossfoam_dev_ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage())));
+            .html(((data[3] !== 0 || data[2] !== 0) ? "Friends:" + ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " | Followers:" + ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | " : "") + ("Connections:" + ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage())));
     };
     Vis.prototype.help = function () {
         var _this = this;
@@ -154,7 +154,7 @@ var Vis = /** @class */ (function () {
         this.container.selectAll("#tooltip").remove();
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        this.hqScale = (crossfoam_dev_ui_helpers_1.isRetinaDisplay) ? 2 : 1;
+        this.hqScale = (ui_helpers_1.isRetinaDisplay) ? 2 : 1;
         if (update) {
             this.update(null);
         }
@@ -162,7 +162,7 @@ var Vis = /** @class */ (function () {
     Vis.prototype.editCluster = function (data, centralNode) {
         var _this = this;
         var modalContainer = document.createElement("div");
-        var modalUUID = crossfoam_dev_utils_1.uuid();
+        var modalUUID = utils_1.uuid();
         modalContainer
             .setAttribute("class", "cf--modal-container");
         modalContainer
@@ -170,7 +170,7 @@ var Vis = /** @class */ (function () {
         modalContainer
             .innerHTML = "<div class=\"cf--modal-box\">\n      <div class=\"cf--modal-title\">" + browser.i18n.getMessage("clusterModifyTitle") + "</div>\n      <div class=\"cf--modal-message\">\n        <form>\n          <label for=\"clusterForm-name\">" + browser.i18n.getMessage("clusterModifyName") + ":</label>\n          <input type=\"text\" value=\"" + data.info.name + "\" id=\"clusterForm-name\" />\n          <input type=\"hidden\" value=\"" + data.info.color + "\" id=\"clusterForm-color\" />\n          <div id=\"colorPickerContainer\" style=\"width:300px;\"></div>\n        </form>\n      </div>\n      <div class=\"cf--modal-buttons\">\n        <button class='cf--modal-button-0' data-value='cancel'>" + browser.i18n.getMessage("cancel") + "</button>\n        <button class='cf--modal-button-1' data-value='save'>" + browser.i18n.getMessage("save") + "</button>\n      </div>\n  </div>";
         document.body.appendChild(modalContainer);
-        crossfoam_dev_ui_helpers_1.colorPicker("colorPickerContainer", "clusterForm-color", 370, data.info.color);
+        ui_helpers_1.colorPicker("colorPickerContainer", "clusterForm-color", 370, data.info.color);
         var removeModal = function () {
             var modalContainerSelect = document.querySelector("#cf--modal-container-" + modalUUID);
             if (modalContainerSelect !== null) {
@@ -185,7 +185,7 @@ var Vis = /** @class */ (function () {
         // save changes
         document.querySelector("#cf--modal-container-" + modalUUID + " .cf--modal-button-1")
             .addEventListener("click", function (event) {
-            crossfoam_dev_ui_helpers_1.blockSplash("Updating Network Data");
+            ui_helpers_1.blockSplash("Updating Network Data");
             var name = document.querySelector("#clusterForm-name").value;
             var color = document.querySelector("#clusterForm-color").value;
             cfData.get("s--" + centralNode.service + "--a--" + centralNode.screenName + "-" + centralNode.nUuid + "--nw")
@@ -221,7 +221,7 @@ var Vis = /** @class */ (function () {
     };
     Vis.prototype.hideCluster = function (data, centralNode) {
         var _this = this;
-        crossfoam_dev_ui_helpers_1.blockSplash("Updating Network Data");
+        ui_helpers_1.blockSplash("Updating Network Data");
         cfData.get("s--" + centralNode.service + "--a--" + centralNode.screenName + "-" + centralNode.nUuid + "--nw")
             .then(function (networkData) {
             var current = networkData.cluster[_this.clusterId].clusters[data.id].modified;

@@ -13,8 +13,8 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+var utils_1 = require("@crossfoam/utils");
 var unsafe_eval_1 = require("@pixi/unsafe-eval");
-var crossfoam_dev_utils_1 = require("crossfoam-dev-utils");
 var d3 = require("d3");
 var PIXI = require("pixi.js");
 var vis_1 = require("./vis");
@@ -27,7 +27,7 @@ var NetworkVis = /** @class */ (function (_super) {
         _this_1.clickNodes = [];
         _this_1.paintEdgeCount = 0;
         _this_1.colorSprites = {};
-        _this_1.paint = crossfoam_dev_utils_1.debounce(function () {
+        _this_1.paint = utils_1.debounce(function () {
             _this_1.glContainerLines.x = _this_1.glContainerArcs.x = _this_1.glContainer.x = _this_1.canvasTransform.x;
             _this_1.glContainerLines.y = _this_1.glContainerArcs.y = _this_1.glContainer.y = _this_1.canvasTransform.y;
             _this_1.glContainer.scale.set(_this_1.canvasTransform.k);
