@@ -1,0 +1,49 @@
+{
+  "name": "@crossfoam/vis",
+  "version": "1.0.0",
+  "description": "visualisation base class",
+  "main": "dst/index.js",
+  "scripts": {
+    "lint": "tslint -p tslint.json --force",
+    "build": "tsc",
+    "typescript": "npm run lint && npm run build",
+    "watch": "nodemon "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ultrapop-de/crossfoam-vis.git"
+  },
+  "author": "sebastian-meier @seb_meier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ultrapop-de/crossfoam-vis/issues"
+  },
+  "homepage": "https://github.com/ultrapop-de/crossfoam-vis#readme",
+  "nodemonConfig": {
+    "ignore": [
+      "node_modules/*",
+      "dst/*"
+    ],
+    "watch": [
+      "src"
+    ],
+    "exec": "npm run typescript",
+    "ext": "ts"
+  },
+  "dependencies": {
+    "@pixi/unsafe-eval": "^5.0.4",
+    "a-color-picker": "^1.1.8",
+    "@crossfoam/data": "^1.0.0",
+    "@crossfoam/ui-helpers": "^1.0.1",
+    "@crossfoam/utils": "^1.0.1",
+    "d3": "^5.11.0",
+    "pixi.js": "^5.1.2"
+  },
+  "devDependencies": {
+    "@types/core-js": "^2.5.0",
+    "nodemon": "^1.18.9",
+    "tslint": "^5.19.0",
+    "typescript": "^3.2.2",
+    "web-ext-types": "^3.1.0"
+  }
+}
