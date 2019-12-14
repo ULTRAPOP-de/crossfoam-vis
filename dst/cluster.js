@@ -33,6 +33,7 @@ var ClusterVis = /** @class */ (function (_super) {
         var maxNodeSize = 0;
         this.nodes = Object.keys(data.cluster[this.clusterId].clusters).map(function (cluster) {
             var clusterData = data.cluster[_this.clusterId].clusters[cluster];
+            console.log(clusterData);
             var nodeSize = 0;
             Object.keys(clusterData.edges).forEach(function (edgeId) {
                 var edge = clusterData.edges[edgeId];

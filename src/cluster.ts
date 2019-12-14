@@ -25,6 +25,7 @@ class ClusterVis extends Vis {
 
     this.nodes = Object.keys(data.cluster[this.clusterId].clusters).map((cluster) => {
       const clusterData = data.cluster[this.clusterId].clusters[cluster];
+      console.log(clusterData);
 
       let nodeSize = 0;
 
