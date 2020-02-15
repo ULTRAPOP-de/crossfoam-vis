@@ -22,8 +22,9 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ui_helpers_1 = require("@crossfoam/ui-helpers");
 var utils_1 = require("@crossfoam/utils");
+var unsafe_eval_1 = require("@pixi/unsafe-eval");
 var d3 = require("d3");
-var REGL = require("regl");
+var PIXI = require("pixi.js");
 var vis_1 = require("./vis");
 var OverviewVis = /** @class */ (function (_super) {
     __extends(OverviewVis, _super);
@@ -48,11 +49,10 @@ var OverviewVis = /** @class */ (function (_super) {
         ];
         _this_1.paint = utils_1.debounce(function () {
             // Only SVG Overlay...
-            // this.g.attr("transform", `translate(${this.canvasTransform.x},${this.canvasTransform.y}) \
-            //                           scale(${this.canvasTransform.k})`);
-            // this.glContainer.x = this.canvasTransform.x;
-            // this.glContainer.y = this.canvasTransform.y;
-            // this.glContainer.scale.set(this.canvasTransform.k);
+            _this_1.g.attr("transform", "translate(" + _this_1.canvasTransform.x + "," + _this_1.canvasTransform.y + ")                               scale(" + _this_1.canvasTransform.k + ")");
+            _this_1.glContainer.x = _this_1.canvasTransform.x;
+            _this_1.glContainer.y = _this_1.canvasTransform.y;
+            _this_1.glContainer.scale.set(_this_1.canvasTransform.k);
         }, 200, true);
         return _this_1;
     }
@@ -88,7 +88,7 @@ var OverviewVis = /** @class */ (function (_super) {
         this.glNodes = __spreadArrays(data.proxies, tempLeafs);
         this.paintNodes = data.nodes;
         this.paintCluster = data.cluster;
-        this.resize(false);
+        unsafe_eval_1.install(PIXI);
         var svg = this.container.append("svg")
             .style("pointer-events", "none")
             .style("z-index", 2);
@@ -140,27 +140,44 @@ var OverviewVis = /** @class */ (function (_super) {
             .attr("r", imageSize / 2 + 2)
             .style("fill", "transparent")
             .style("stroke", "rgba(0,0,0,0.2)");
-        var canvas = this.container.append("canvas").attr("id", "overview-regl-canvas");
-        this.regl = REGL(document.getElementById("overview-regl-canvas"));
-        var points = this.paintNodes.map(function (node) {
-            var color = [85, 85, 85];
-            if (node[6][_this_1.clusterId].length > 0 &&
-                node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                color = _this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color;
-            }
-            return {
-                color: color,
-                size: node[7] * 2,
-                x: node[8] + _this_1.width / 2,
-                y: node[9] + _this_1.width / 2,
-            };
+        var canvas = this.container.append("canvas");
+        this.update(null);
+        this.app = new PIXI.Application({
+            antialias: true,
+            backgroundColor: 0xffffff,
+            height: this.height,
+            resolution: this.hqScale,
+            view: canvas.node(),
+            width: this.width,
         });
-        // this.glContainer.x = 0;
-        // this.glContainer.y = 0;
-        // canvas.call(d3.zoom()
-        //   .scaleExtent([0.1, 8])
-        //   .on("zoom", () => { this.zoom(this); }),
-        // );
+        var renderer = this.app.renderer;
+        this.app.render();
+        this.container.node().appendChild(this.app.view);
+        this.glContainer = new PIXI.Container();
+        this.app.stage.addChild(this.glContainer);
+        this.nodeGraphic = new PIXI.Graphics();
+        this.glContainer.addChild(this.nodeGraphic);
+        // Default texture
+        var graphics = new PIXI.Graphics();
+        graphics.lineStyle(0);
+        graphics.beginFill(PIXI.utils.string2hex("#555555"), 1);
+        graphics.drawCircle(50, 50, 50);
+        graphics.endFill();
+        this.texture = renderer.generateTexture(graphics, 1, this.hqScale);
+        Object.keys(this.paintCluster[this.clusterId].clusters).forEach(function (clusterKey) {
+            var color = _this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color;
+            var colorGraphics = new PIXI.Graphics();
+            colorGraphics.lineStyle(0);
+            colorGraphics.beginFill(PIXI.utils.string2hex(color), 1);
+            colorGraphics.drawCircle(50, 50, 50);
+            colorGraphics.endFill();
+            _this_1.colorSprites[clusterKey] = renderer.generateTexture(colorGraphics, 1, _this_1.hqScale);
+        });
+        this.glContainer.x = 0;
+        this.glContainer.y = 0;
+        canvas.call(d3.zoom()
+            .scaleExtent([0.1, 8])
+            .on("zoom", function () { _this_1.zoom(_this_1); }));
         canvas.on("click", function () {
             var x = d3.event.pageX;
             var y = d3.event.pageY;
@@ -181,34 +198,49 @@ var OverviewVis = /** @class */ (function (_super) {
         this.container.append("div")
             .attr("id", "overview-legend")
             .html("<img src=\"../assets/images/vis--overview--legend.png\"       srcset=\"../assets/images/vis--overview--legend.png 1x,       ../assets/images/vis--overview--legend@2x.png 2x\">");
-        this.reglDraw = this.regl({
-            attributes: {
-                color: points.map(function (d) { return d.color; }),
-                position: points.map(function (d) { return [d.x, d.y]; }),
-                size: points.map(function (d) { return d.size; }),
-            },
-            count: points.length,
-            frag: "\n        // set the precision of floating point numbers\n        precision highp float;\n        // this value is populated by the vertex shader\n        varying vec3 fragColor;\n        void main() {\n          // gl_FragColor is a special variable that holds the color of a pixel\n          gl_FragColor = vec4(fragColor, 1);\n        }\n      ",
-            primitive: "points",
-            uniforms: {
-                stageHeight: this.regl.prop("stageHeight"),
-                stageWidth: this.regl.prop("stageWidth"),
-            },
-            vert: "\n        // per vertex attributes\n        attribute float size;\n        attribute vec2 position;\n        attribute vec3 color;\n        // variables to send to the fragment shader\n        varying vec3 fragColor;\n        // values that are the same for all vertices\n        uniform float stageWidth;\n        uniform float stageHeight;\n        // helper function to transform from pixel space to normalized device coordinates (NDC)\n        // in NDC (0,0) is the middle, (-1, 1) is the top left and (1, -1) is the bottom right.\n        vec2 normalizeCoords(vec2 position) {\n          // read in the positions into x and y vars\n          float x = position[0];\n          float y = position[1];\n          return vec2(\n            2.0 * ((x / stageWidth) - 0.5),\n            // invert y since we think [0,0] is bottom left in pixel space\n            -(2.0 * ((y / stageHeight) - 0.5)));\n        }\n        void main() {\n          // update the size of a point based on the prop pointWidth\n          gl_PointSize = size;\n          // send color to the fragment shader\n          fragColor = color;\n          // scale to normalized device coordinates\n          // gl_Position is a special variable that holds the position of a vertex\n          gl_Position = vec4(normalizeCoords(position), 0.0, 1.0);\n        }\n      ",
-        });
-        var frameLoop = this.regl.frame(function () {
-            _this_1.regl.clear({
-                color: [0, 0, 0, 1],
-                depth: 1,
-            });
-            _this_1.reglDraw({
-                stageHeight: _this_1.height,
-                stageWidth: _this_1.width,
-            });
-            if (frameLoop) {
-                frameLoop.cancel();
+        this.paint();
+        this.addNodes();
+    };
+    OverviewVis.prototype.addNodes = function () {
+        var _this_1 = this;
+        var limit = 100;
+        if (this.paintNodeCount < this.paintNodes.length) {
+            for (var i = 0; i < limit && this.paintNodeCount < this.paintNodes.length; i += 1) {
+                var node = this.paintNodes[this.paintNodeCount];
+                this.paintNodeCount += 1;
+                var texture = this.texture;
+                if (node[6][this.clusterId].length > 0 &&
+                    node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
+                    texture = this.colorSprites[node[6][this.clusterId][0]];
+                }
+                if (!this.destroyed) {
+                    var sprite = new PIXI.Sprite(texture);
+                    sprite.anchor.set(0.5, 0.5);
+                    sprite.x = node[8] + this.width / 2;
+                    sprite.y = node[9] + this.height / 2;
+                    sprite.width = node[7] * 2;
+                    sprite.height = node[7] * 2;
+                    this.glContainer.addChild(sprite);
+                }
             }
-        });
+            window.requestAnimationFrame(function () { return _this_1.addNodes(); });
+        }
+        else if (this.glNodeCount < this.glNodes.length) {
+            for (var i = 0; i < limit && this.glNodeCount < this.glNodes.length; i += 1) {
+                var glNode = this.glNodes[this.glNodeCount];
+                this.glNodeCount += 1;
+                if (!this.destroyed) {
+                    var sprite = new PIXI.Sprite(this.texture);
+                    sprite.anchor.set(0.5, 0.5);
+                    sprite.x = glNode[8] + this.width / 2;
+                    sprite.y = glNode[9] + this.height / 2;
+                    sprite.width = glNode[7] * 2;
+                    sprite.height = glNode[7] * 2;
+                    this.glContainer.addChild(sprite);
+                }
+            }
+            window.requestAnimationFrame(function () { return _this_1.addNodes(); });
+        }
     };
     OverviewVis.prototype.update = function (data) {
         d3.selectAll("canvas, svg")
@@ -221,4 +253,4 @@ var OverviewVis = /** @class */ (function (_super) {
     return OverviewVis;
 }(vis_1.Vis));
 exports.OverviewVis = OverviewVis;
-//# sourceMappingURL=overview.js.map
+//# sourceMappingURL=overviewGL.js.map

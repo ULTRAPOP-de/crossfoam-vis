@@ -1,7 +1,8 @@
 import { formatNumber } from "@crossfoam/ui-helpers";
 import { debounce } from "@crossfoam/utils";
+import { install as pixiInstall } from "@pixi/unsafe-eval";
 import * as d3 from "d3";
-import * as REGL from "regl";
+import * as PIXI from "pixi.js";
 import { Vis } from "./vis";
 
 class OverviewVis extends Vis {
@@ -17,8 +18,6 @@ class OverviewVis extends Vis {
   public nodeGraphic;
   public colorSprites = {};
   public g;
-  public regl;
-  public reglDraw;
 
   public helpData = [
     browser.i18n.getMessage("helpOverview_1"),
@@ -33,12 +32,12 @@ class OverviewVis extends Vis {
 
   public paint = debounce(() => {
     // Only SVG Overlay...
-    // this.g.attr("transform", `translate(${this.canvasTransform.x},${this.canvasTransform.y}) \
-    //                           scale(${this.canvasTransform.k})`);
+    this.g.attr("transform", `translate(${this.canvasTransform.x},${this.canvasTransform.y}) \
+                              scale(${this.canvasTransform.k})`);
 
-    // this.glContainer.x = this.canvasTransform.x;
-    // this.glContainer.y = this.canvasTransform.y;
-    // this.glContainer.scale.set(this.canvasTransform.k);
+    this.glContainer.x = this.canvasTransform.x;
+    this.glContainer.y = this.canvasTransform.y;
+    this.glContainer.scale.set(this.canvasTransform.k);
   }, 200, true);
 
   public destroy() {
@@ -61,6 +60,7 @@ class OverviewVis extends Vis {
   }
 
   public build(data: any, centralNode: any) {
+
     const tempLeafs = data.leafs.map((d) => {
       return [
         null,
@@ -79,8 +79,7 @@ class OverviewVis extends Vis {
     this.glNodes = [...data.proxies, ...tempLeafs];
     this.paintNodes = data.nodes;
     this.paintCluster = data.cluster;
-
-    this.resize(false);
+    pixiInstall(PIXI);
 
     const svg = this.container.append("svg")
       .style("pointer-events", "none")
@@ -145,33 +144,58 @@ class OverviewVis extends Vis {
       .style("fill", "transparent")
       .style("stroke", "rgba(0,0,0,0.2)");
 
-    const canvas = this.container.append("canvas").attr("id", "overview-regl-canvas");
+    const canvas = this.container.append("canvas");
 
-    this.regl = REGL(document.getElementById("overview-regl-canvas"));
+    this.update(null);
 
-    const points = this.paintNodes.map((node) => {
-      let color = [85, 85, 85];
-
-      if (node[6][this.clusterId].length > 0 &&
-        node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-        color = this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color;
-      }
-
-      return {
-        color,
-        size: node[7] * 2,
-        x: node[8] + this.width / 2,
-        y: node[9] + this.width / 2,
-      };
+    this.app = new PIXI.Application({
+      antialias: true,
+      backgroundColor: 0xffffff,
+      height: this.height,
+      resolution: this.hqScale,
+      view: canvas.node(),
+      width: this.width,
     });
 
-    // this.glContainer.x = 0;
-    // this.glContainer.y = 0;
+    const renderer = this.app.renderer;
 
-    // canvas.call(d3.zoom()
-    //   .scaleExtent([0.1, 8])
-    //   .on("zoom", () => { this.zoom(this); }),
-    // );
+    this.app.render();
+
+    this.container.node().appendChild(this.app.view);
+
+    this.glContainer = new PIXI.Container();
+    this.app.stage.addChild(this.glContainer);
+
+    this.nodeGraphic = new PIXI.Graphics();
+    this.glContainer.addChild(this.nodeGraphic);
+
+    // Default texture
+    const graphics = new PIXI.Graphics();
+    graphics.lineStyle(0);
+    graphics.beginFill(PIXI.utils.string2hex("#555555"), 1);
+    graphics.drawCircle(50, 50, 50);
+    graphics.endFill();
+    this.texture = renderer.generateTexture(graphics, 1, this.hqScale);
+
+    Object.keys(this.paintCluster[this.clusterId].clusters).forEach((clusterKey) => {
+      const color = this.paintCluster[this.clusterId].clusters[clusterKey].color;
+
+      const colorGraphics = new PIXI.Graphics();
+      colorGraphics.lineStyle(0);
+      colorGraphics.beginFill(PIXI.utils.string2hex(color), 1);
+      colorGraphics.drawCircle(50, 50, 50);
+      colorGraphics.endFill();
+
+      this.colorSprites[clusterKey] = renderer.generateTexture(colorGraphics, 1, this.hqScale);
+    });
+
+    this.glContainer.x = 0;
+    this.glContainer.y = 0;
+
+    canvas.call(d3.zoom()
+      .scaleExtent([0.1, 8])
+      .on("zoom", () => { this.zoom(this); }),
+    );
 
     canvas.on("click", () => {
       const x = d3.event.pageX;
@@ -205,77 +229,56 @@ class OverviewVis extends Vis {
       srcset="../assets/images/vis--overview--legend.png 1x, \
       ../assets/images/vis--overview--legend@2x.png 2x">`);
 
-    this.reglDraw = this.regl({
-      attributes: {
-        color: points.map((d) => d.color),
-        position: points.map((d) => [d.x, d.y]),
-        size: points.map((d) => d.size),
-      },
-      count: points.length,
-      frag: `
-        // set the precision of floating point numbers
-        precision highp float;
-        // this value is populated by the vertex shader
-        varying vec3 fragColor;
-        void main() {
-          // gl_FragColor is a special variable that holds the color of a pixel
-          gl_FragColor = vec4(fragColor, 1);
-        }
-      `,
-      primitive: "points",
-      uniforms: {
-        stageHeight: this.regl.prop("stageHeight"),
-        stageWidth: this.regl.prop("stageWidth"),
-      },
-      vert: `
-        // per vertex attributes
-        attribute float size;
-        attribute vec2 position;
-        attribute vec3 color;
-        // variables to send to the fragment shader
-        varying vec3 fragColor;
-        // values that are the same for all vertices
-        uniform float stageWidth;
-        uniform float stageHeight;
-        // helper function to transform from pixel space to normalized device coordinates (NDC)
-        // in NDC (0,0) is the middle, (-1, 1) is the top left and (1, -1) is the bottom right.
-        vec2 normalizeCoords(vec2 position) {
-          // read in the positions into x and y vars
-          float x = position[0];
-          float y = position[1];
-          return vec2(
-            2.0 * ((x / stageWidth) - 0.5),
-            // invert y since we think [0,0] is bottom left in pixel space
-            -(2.0 * ((y / stageHeight) - 0.5)));
-        }
-        void main() {
-          // update the size of a point based on the prop pointWidth
-          gl_PointSize = size;
-          // send color to the fragment shader
-          fragColor = color;
-          // scale to normalized device coordinates
-          // gl_Position is a special variable that holds the position of a vertex
-          gl_Position = vec4(normalizeCoords(position), 0.0, 1.0);
-        }
-      `,
-    });
+    this.paint();
+    this.addNodes();
+  }
 
-    const frameLoop = this.regl.frame(() => {
-      this.regl.clear({
-        color: [0, 0, 0, 1],
-        depth: 1,
-      });
+  public addNodes() {
+    const limit = 100;
 
-      this.reglDraw({
-        stageHeight: this.height,
-        stageWidth: this.width,
-      });
+    if (this.paintNodeCount < this.paintNodes.length) {
+      for (let i = 0; i < limit && this.paintNodeCount < this.paintNodes.length; i += 1) {
+        const node = this.paintNodes[this.paintNodeCount];
+        this.paintNodeCount += 1;
 
-      if (frameLoop) {
-        frameLoop.cancel();
+        let texture = this.texture;
+        if (node[6][this.clusterId].length > 0 &&
+            node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
+          texture = this.colorSprites[node[6][this.clusterId][0]];
+        }
+
+        if (!this.destroyed) {
+          const sprite = new PIXI.Sprite(texture);
+          sprite.anchor.set(0.5, 0.5);
+          sprite.x = node[8] + this.width / 2;
+          sprite.y = node[9] + this.height / 2;
+          sprite.width = node[7] * 2;
+          sprite.height = node[7] * 2;
+
+          this.glContainer.addChild(sprite);
+        }
+
       }
-    });
+      window.requestAnimationFrame(() => this.addNodes());
+    } else if (this.glNodeCount < this.glNodes.length) {
 
+      for (let i = 0; i < limit && this.glNodeCount < this.glNodes.length; i += 1) {
+        const glNode = this.glNodes[this.glNodeCount];
+        this.glNodeCount += 1;
+
+        if (!this.destroyed) {
+          const sprite = new PIXI.Sprite(this.texture);
+          sprite.anchor.set(0.5, 0.5);
+          sprite.x = glNode[8] + this.width / 2;
+          sprite.y = glNode[9] + this.height / 2;
+          sprite.width = glNode[7] * 2;
+          sprite.height = glNode[7] * 2;
+
+          this.glContainer.addChild(sprite);
+        }
+      }
+      window.requestAnimationFrame(() => this.addNodes());
+    }
   }
 
   public update(data: any) {

@@ -31,13 +31,14 @@
     "ext": "ts"
   },
   "dependencies": {
-    "@pixi/unsafe-eval": "^5.0.4",
-    "a-color-picker": "^1.1.8",
     "@crossfoam/data": "^1.0.0",
     "@crossfoam/ui-helpers": "^1.0.1",
     "@crossfoam/utils": "^1.0.1",
+    "@pixi/unsafe-eval": "^5.0.4",
+    "a-color-picker": "^1.1.8",
     "d3": "^5.11.0",
-    "pixi.js": "^5.1.2"
+    "pixi.js": "^5.1.2",
+    "regl": "^1.3.13"
   },
   "devDependencies": {
     "@types/core-js": "^2.5.0",

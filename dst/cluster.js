@@ -27,7 +27,6 @@ var ClusterVis = /** @class */ (function (_super) {
     }
     ClusterVis.prototype.build = function (data, centralNode) {
         var _this = this;
-        console.log(data, centralNode);
         this.svg = this.container.append("svg");
         this.update(null);
         var maxEdge = 0;
