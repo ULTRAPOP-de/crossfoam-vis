@@ -83,8 +83,8 @@ class Vis {
   public tooltip(data: any, _x: number, _y: number) {
     this.container.selectAll("#tooltip").remove();
 
-    const x = (this.width / 2 + _x) * this.canvasTransform.k + this.canvasTransform.x;
-    const y = (this.height / 2 + _y) * this.canvasTransform.k + this.canvasTransform.y;
+    const x = _x; // (this.width / 2 + _x) * this.canvasTransform.k + this.canvasTransform.x;
+    const y = _y; // (this.height / 2 + _y) * this.canvasTransform.k + this.canvasTransform.y;
 
     const wrapper = this.container.append("div")
       .attr("id", "tooltip")

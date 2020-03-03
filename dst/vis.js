@@ -65,8 +65,8 @@ var Vis = /** @class */ (function () {
     };
     Vis.prototype.tooltip = function (data, _x, _y) {
         this.container.selectAll("#tooltip").remove();
-        var x = (this.width / 2 + _x) * this.canvasTransform.k + this.canvasTransform.x;
-        var y = (this.height / 2 + _y) * this.canvasTransform.k + this.canvasTransform.y;
+        var x = _x; // (this.width / 2 + _x) * this.canvasTransform.k + this.canvasTransform.x;
+        var y = _y; // (this.height / 2 + _y) * this.canvasTransform.k + this.canvasTransform.y;
         var wrapper = this.container.append("div")
             .attr("id", "tooltip")
             .style("top", y + "px");

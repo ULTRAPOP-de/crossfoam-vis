@@ -1,4 +1,4 @@
-import { formatNumber } from "@crossfoam/ui-helpers";
+import { formatNumber, logoSpinner } from "@crossfoam/ui-helpers";
 import { debounce } from "@crossfoam/utils";
 import * as d3 from "d3";
 import * as REGL from "regl";
@@ -10,15 +10,26 @@ class OverviewVis extends Vis {
   public app;
   public glContainer;
   public clickNodes = [];
-  public nodeColors = [];
-  public paintNodeCount = 0;
-  public glNodeCount = 0;
-  public texture;
-  public nodeGraphic;
-  public colorSprites = {};
   public g;
   public regl;
   public reglDraw;
+  public points;
+  public time = 1;
+  public scaleTarget = 1;
+  public navData;
+  public navPoints;
+  public navLine;
+  public navActiveLine;
+  public currentScale = 0;
+  public interpolation;
+  public lineInterpolation;
+  public lineTarget = 0;
+  public navDist;
+  public frameLoop: any = false;
+
+  public handleResize = debounce(() => {
+    this.resize(true);
+  }, 200, true);
 
   public helpData = [
     browser.i18n.getMessage("helpOverview_1"),
@@ -31,24 +42,20 @@ class OverviewVis extends Vis {
     browser.i18n.getMessage("helpOverview_8"),
   ];
 
-  public paint = debounce(() => {
-    // Only SVG Overlay...
-    // this.g.attr("transform", `translate(${this.canvasTransform.x},${this.canvasTransform.y}) \
-    //                           scale(${this.canvasTransform.k})`);
-
-    // this.glContainer.x = this.canvasTransform.x;
-    // this.glContainer.y = this.canvasTransform.y;
-    // this.glContainer.scale.set(this.canvasTransform.k);
-  }, 200, true);
+  public destroyTooltip() {
+    const tooltip = this.container.selectAll("#tooltip");
+    if (tooltip.size() > 0) {
+      tooltip.remove();
+    }
+  }
 
   public destroy() {
     this.destroyed = true;
-    this.container.selectAll("#tooltip").remove();
-    this.app.destroy(true, true);
+    this.destroyTooltip();
   }
 
   public zoom(_this) {
-    this.container.selectAll("#tooltip").remove();
+    this.destroyTooltip();
     _this.canvasTransform = d3.event.transform;
     _this.paint();
   }
@@ -76,15 +83,51 @@ class OverviewVis extends Vis {
       ];
     });
 
-    this.glNodes = [...data.proxies, ...tempLeafs];
-    this.paintNodes = data.nodes;
+    this.paintNodes = [...data.nodes, ...data.proxies, ...tempLeafs];
     this.paintCluster = data.cluster;
 
     this.resize(false);
 
+    d3.select(window).on("resize", () => {
+      this.handleResize();
+    });
+
+    // canvas
+    const canvas = this.container.append("div")
+      .style("width", this.width + "px")
+      .style("height", this.height + "px")
+      .attr("id", "overview-regl-canvas");
+
     const svg = this.container.append("svg")
-      .style("pointer-events", "none")
-      .style("z-index", 2);
+      .attr("id", "overview-svg")
+      .style("z-index", 2)
+      .on("click", () => {
+        const x = d3.event.pageX;
+        const y = d3.event.pageY;
+
+        let hit = false;
+
+        this.clickNodes.forEach((node) => {
+          const dist = Math.sqrt(
+            Math.pow(x - (node[8] * this.scaleTarget + this.width / 2), 2)
+            + Math.pow(y - (node[9] * this.scaleTarget + this.height / 2), 2),
+          );
+
+          if (dist <= node[7] * this.scaleTarget) {
+            this.tooltip(
+              node,
+              node[8] * this.scaleTarget + this.width / 2,
+              node[9] * this.scaleTarget + this.height / 2,
+            );
+            hit = true;
+          }
+        });
+
+        if (!hit) {
+          this.container.selectAll("#tooltip").remove();
+        }
+
+      });
 
     const textRadius = d3.max(data.nodes, (d) => Math.sqrt(Math.pow(d[8], 2) + Math.pow(d[9], 2)));
 
@@ -96,7 +139,7 @@ class OverviewVis extends Vis {
 
     defs.append("path")
       .attr("id", "reverseTextPath")
-      .attr("d", this.circlePath(0, 0, textRadius + 14, false));
+      .attr("d", this.circlePath(0, 0, textRadius + 17, false));
 
     const imageSize = 48;
 
@@ -109,9 +152,9 @@ class OverviewVis extends Vis {
         .style("fill", "black");
 
     this.g = svg.append("g");
+
     this.svg = this.g.append("g")
-      .classed("centerGroup", true)
-      .attr("transform", `translate(${this.width / 2},${this.height / 2})`);
+      .classed("centerGroup", true);
 
     this.svg.append("text")
       .append("textPath")
@@ -145,85 +188,145 @@ class OverviewVis extends Vis {
       .style("fill", "transparent")
       .style("stroke", "rgba(0,0,0,0.2)");
 
-    const canvas = this.container.append("canvas").attr("id", "overview-regl-canvas");
-
-    this.regl = REGL(document.getElementById("overview-regl-canvas"));
-
-    const points = this.paintNodes.map((node) => {
-      let color = [85, 85, 85];
+    this.points = this.paintNodes.map((node) => {
+      let color = [85 / 255, 85 / 255, 85 / 255];
 
       if (node[6][this.clusterId].length > 0 &&
         node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-        color = this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color;
+        const rgb = d3.color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
+        color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
       }
 
       return {
         color,
-        size: node[7] * 2,
-        x: node[8] + this.width / 2,
-        y: node[9] + this.width / 2,
+        size: node[7] * 4,
+        x: node[8],
+        y: node[9],
       };
-    });
-
-    // this.glContainer.x = 0;
-    // this.glContainer.y = 0;
-
-    // canvas.call(d3.zoom()
-    //   .scaleExtent([0.1, 8])
-    //   .on("zoom", () => { this.zoom(this); }),
-    // );
-
-    canvas.on("click", () => {
-      const x = d3.event.pageX;
-      const y = d3.event.pageY;
-
-      let hit = false;
-
-      this.clickNodes.forEach((node) => {
-        const dist = Math.sqrt(
-          Math.pow((x - this.canvasTransform.x) - (node[8] + this.width / 2) * this.canvasTransform.k, 2)
-          + Math.pow((y - this.canvasTransform.y) - (node[9] + this.height / 2) * this.canvasTransform.k, 2),
-        );
-
-        if (dist <= node[7] * this.canvasTransform.k) {
-          this.tooltip(node, node[8], node[9]);
-          hit = true;
-        }
-      });
-
-      if (!hit) {
-        this.container.selectAll("#tooltip").remove();
-      }
-
     });
 
     this.clickNodes = [...data.nodes, ...data.proxies];
 
-    this.container.append("div")
-      .attr("id", "overview-legend")
-      .html(`<img src="../assets/images/vis--overview--legend.png" \
-      srcset="../assets/images/vis--overview--legend.png 1x, \
-      ../assets/images/vis--overview--legend@2x.png 2x">`);
+    const navigation = this.container.append("div")
+      .attr("id", "overview-navigation")
+      .append("svg");
+
+    this.navData = [
+      // TODO: move to dictionary
+      [data.nodes.length, `<strong>${browser.i18n.getMessage("friends")}</strong> ${formatNumber(data.nodes.length, browser.i18n.getUILanguage())}`],
+      [data.proxies.length, `<strong>${browser.i18n.getMessage("sharedFiendsOfFriends")}</strong> ${formatNumber(data.proxies.length, browser.i18n.getUILanguage())}`],
+      [tempLeafs.length, `<strong>${browser.i18n.getMessage("otherFriends")}</strong> ${formatNumber(tempLeafs.length, browser.i18n.getUILanguage())}`],
+    ];
+
+    this.navLine = navigation.append("line")
+      .attr("transform", "translate(110, 0)")
+      .attr("y1", this.navData[0][2])
+      .style("stroke-width", 5)
+      .style("stroke", "white");
+
+    this.navPoints = navigation.append("g").selectAll("g").data(this.navData).enter().append("g")
+      .attr("class", "overview-navigation-buttons");
+
+    const navScale = d3.scaleLinear().range([10, 35]).domain(d3.extent(this.navData, (d) => d[0]));
+
+    this.navData.forEach((nd, ni) => {
+      nd.push(navScale(nd[0]));
+      let offset = 0;
+      while (ni > 0) {
+        ni -= 1;
+        offset += this.navData[ni][2] * 2;
+      }
+      nd.push(offset);
+    });
+
+    this.navPoints.append("circle")
+      .attr("r", (d) => navScale(d[0]) + 5)
+      .style("fill", "white");
+
+    this.navPoints.append("circle")
+      .attr("r", (d) => navScale(d[0]))
+      .style("fill", "rgba(0,0,0,0.2)");
+
+    this.navPoints.append("circle")
+      .attr("r", (d, i) => {
+        if (i === 0) {
+          return 0;
+        } else {
+          return navScale(this.navData[i - 1][0]);
+        }
+      })
+      .style("fill", "white");
+
+    this.navPoints.append("line")
+      .attr("x2", -14);
+
+    this.navPoints.append("circle")
+      .attr("class", "overview-navigation-indicator")
+      .attr("r", 5);
+
+    this.navPoints.append("foreignObject")
+      .attr("width", "90")
+      .attr("height", "45")
+      .attr("transform", "translate(-108, -17)")
+      .html((d) => `<p>${d[1]}</p>`);
+
+    this.navActiveLine = navigation.append("line")
+      .style("pointer-events", "none")
+      .attr("transform", "translate(110, 15)")
+      .style("stroke-width", 1)
+      .style("stroke", "338498");
+
+    const getDist = (n) => Math.sqrt(Math.pow(n[8], 2) + Math.pow(n[9], 2));
+
+    this.navData[0].push(data.nodes.map((n) => getDist(n)).sort((a, b) => b - a)[0]);
+    this.navData[1].push(getDist(data.proxies[data.proxies.length - 1]));
+    this.navData[2].push(getDist(tempLeafs[tempLeafs.length - 1]));
+
+    this.navPoints.on("click", (d, i) => {
+      this.container.selectAll("#tooltip").remove();
+      this.currentScale = i;
+      this.interpolation = d3.interpolate(this.scaleTarget, d[5]);
+      this.lineInterpolation = d3.interpolate(this.lineTarget, this.navDist * i + d[3] + d[2] - 5);
+      this.time = 0;
+      this.update(false);
+    });
+
+    this.glBuild();
+  }
+
+  public glBuild() {
+    this.regl = REGL(document.getElementById("overview-regl-canvas"));
+
+    window.onbeforeunload = () => {
+      this.regl.destroy();
+    };
 
     this.reglDraw = this.regl({
       attributes: {
-        color: points.map((d) => d.color),
-        position: points.map((d) => [d.x, d.y]),
-        size: points.map((d) => d.size),
+        color: this.points.map((d) => d.color),
+        position: this.points.map((d) => [d.x, d.y]),
+        size: this.points.map((d) => d.size),
       },
-      count: points.length,
+      count: this.points.length,
       frag: `
         // set the precision of floating point numbers
         precision highp float;
         // this value is populated by the vertex shader
         varying vec3 fragColor;
         void main() {
+          float r = 0.0, delta = 0.0;
+          vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+          r = dot(cxy, cxy);
+          if (r > 1.0) {
+              discard;
+          }
           // gl_FragColor is a special variable that holds the color of a pixel
           gl_FragColor = vec4(fragColor, 1);
         }
       `,
       primitive: "points",
       uniforms: {
+        scale: this.regl.prop("scale"),
         stageHeight: this.regl.prop("stageHeight"),
         stageWidth: this.regl.prop("stageWidth"),
       },
@@ -235,22 +338,24 @@ class OverviewVis extends Vis {
         // variables to send to the fragment shader
         varying vec3 fragColor;
         // values that are the same for all vertices
+        uniform float scale;
         uniform float stageWidth;
         uniform float stageHeight;
         // helper function to transform from pixel space to normalized device coordinates (NDC)
         // in NDC (0,0) is the middle, (-1, 1) is the top left and (1, -1) is the bottom right.
         vec2 normalizeCoords(vec2 position) {
           // read in the positions into x and y vars
-          float x = position[0];
-          float y = position[1];
+          float x = position[0] * scale + stageWidth / 2.0;
+          float y = position[1] * scale + stageHeight / 2.0;
           return vec2(
             2.0 * ((x / stageWidth) - 0.5),
-            // invert y since we think [0,0] is bottom left in pixel space
-            -(2.0 * ((y / stageHeight) - 0.5)));
+            // invert y to treat [0,0] as bottom left in pixel space
+            -(2.0 * ((y / stageHeight) - 0.5))
+          );
         }
         void main() {
           // update the size of a point based on the prop pointWidth
-          gl_PointSize = size;
+          gl_PointSize = size * scale;
           // send color to the fragment shader
           fragColor = color;
           // scale to normalized device coordinates
@@ -260,32 +365,89 @@ class OverviewVis extends Vis {
       `,
     });
 
-    const frameLoop = this.regl.frame(() => {
-      this.regl.clear({
-        color: [0, 0, 0, 1],
-        depth: 1,
+    this.time = 1;
+    this.update(false);
+  }
+
+  public glAnimate() {
+    if (!this.frameLoop) {
+      this.frameLoop = this.regl.frame(() => {
+        this.regl.clear({
+          color: [255, 255, 255, 1],
+          depth: 1,
+        });
+
+        let scale = this.scaleTarget;
+        let lineY = this.lineTarget;
+
+        if (this.time < 1) {
+          lineY = this.lineInterpolation(d3.easeCubic(this.time));
+          this.lineTarget = lineY;
+
+          scale = this.interpolation(d3.easeCubic(this.time));
+          this.scaleTarget = scale;
+        }
+
+        this.navActiveLine.attr("y2", lineY);
+        this.navPoints.classed("active", (d, i) => {
+          if (lineY >= this.navDist * i + d[3]) {
+            return true;
+          }
+          return false;
+        });
+
+        this.svg.attr("transform", `translate(${this.width / 2},${this.height / 2}) scale(${this.scaleTarget})`);
+
+        this.reglDraw({
+          scale,
+          stageHeight: this.height,
+          stageWidth: this.width,
+        });
+
+        if (this.frameLoop && this.time >= 1) {
+          this.frameLoop.cancel();
+          this.frameLoop = false;
+        } else {
+          this.time += 0.01;
+        }
       });
-
-      this.reglDraw({
-        stageHeight: this.height,
-        stageWidth: this.width,
-      });
-
-      if (frameLoop) {
-        frameLoop.cancel();
-      }
-    });
-
+    }
   }
 
   public update(data: any) {
-    d3.selectAll("canvas, svg")
-      .attr("width", this.width * this.hqScale)
-      .attr("height", this.height * this.hqScale);
+    this.navDist = (this.height * 0.5 - 10 - this.navData.reduce((a, b) => a + b[2] * 2, 0)) / 2;
+    this.navPoints.attr("transform", (d, i) => `translate(110, ${this.navDist * i + d[3] + d[2] + 5})`);
 
-    if (data) {
-      // rebuild
-    }
+    this.navLine.attr("y2", this.navDist * 2 +
+      this.navData[this.navData.length - 1][3] +
+      this.navData[this.navData.length - 1][2]);
+
+    this.svg.attr("transform", `translate(${this.width / 2},${this.height / 2}) scale(${this.scaleTarget})`);
+
+    this.container.select("#overview-regl-canvas")
+      .style("width", this.width + "px")
+      .style("height", this.height + "px");
+
+    this.container.select("#overview-regl-canvas canvas")
+      .attr("width", this.width * 2)
+      .attr("height", this.height * 2)
+      .style("width", this.width + "px")
+      .style("height", this.height + "px");
+
+    this.navData.forEach((n) => {
+      const scaleX = (this.width / 2) / (n[4] + 50);
+      const scaleY = (this.height / 2) / (n[4] + 50);
+      let scale = 1;
+      if (scaleX < scaleY && scaleX < 1) {
+        scale = scaleX;
+      } else if (scaleY < 1) {
+        scale = scaleY;
+      }
+      n[5] = scale;
+    });
+
+    this.regl.poll();
+    this.glAnimate();
   }
 
 }
