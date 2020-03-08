@@ -13,27 +13,16 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var utils_1 = require("@crossfoam/utils");
-var unsafe_eval_1 = require("@pixi/unsafe-eval");
 var d3 = require("d3");
-var PIXI = require("pixi.js");
+var REGL = require("regl");
 var vis_1 = require("./vis");
 var NetworkVis = /** @class */ (function (_super) {
     __extends(NetworkVis, _super);
     function NetworkVis() {
         var _this_1 = _super !== null && _super.apply(this, arguments) || this;
         _this_1.visType = "network";
-        _this_1.paintNodeCount = 0;
-        _this_1.clickNodes = [];
-        _this_1.paintEdgeCount = 0;
-        _this_1.colorSprites = {};
-        _this_1.paint = utils_1.debounce(function () {
-            _this_1.glContainerLines.x = _this_1.glContainerArcs.x = _this_1.glContainer.x = _this_1.canvasTransform.x;
-            _this_1.glContainerLines.y = _this_1.glContainerArcs.y = _this_1.glContainer.y = _this_1.canvasTransform.y;
-            _this_1.glContainer.scale.set(_this_1.canvasTransform.k);
-            _this_1.glContainerArcs.scale.set(_this_1.canvasTransform.k);
-            _this_1.glContainerLines.scale.set(_this_1.canvasTransform.k);
-        }, 200, true);
+        _this_1.time = 0;
+        _this_1.frameLoop = false;
         return _this_1;
     }
     NetworkVis.prototype.destroy = function () {
@@ -44,152 +33,144 @@ var NetworkVis = /** @class */ (function (_super) {
     NetworkVis.prototype.zoom = function (_this) {
         this.container.selectAll("#tooltip").remove();
         _this.canvasTransform = d3.event.transform;
-        _this.paint();
+        this.glAnimate();
     };
     NetworkVis.prototype.build = function (data, centralNode) {
         var _this_1 = this;
-        unsafe_eval_1.install(PIXI);
-        var canvas = this.container.append("canvas");
-        this.update(null);
-        this.app = new PIXI.Application({
-            antialias: true,
-            backgroundColor: 0xffffff,
-            height: this.height,
-            resolution: this.hqScale,
-            view: canvas.node(),
-            width: this.width,
-        });
-        var renderer = this.app.renderer;
-        this.app.render();
-        this.container.node().appendChild(this.app.view);
-        this.glContainerLines = new PIXI.Container();
-        this.app.stage.addChild(this.glContainerLines);
-        this.glContainerLines.x = 0;
-        this.glContainerLines.y = 0;
-        this.glContainer = new PIXI.Container();
-        this.app.stage.addChild(this.glContainer);
-        this.glContainer.x = 0;
-        this.glContainer.y = 0;
-        this.glContainerArcs = new PIXI.Container();
-        this.app.stage.addChild(this.glContainerArcs);
-        this.glContainerArcs.x = 0;
-        this.glContainerArcs.y = 0;
-        this.edgeGraphic = new PIXI.Graphics();
-        this.edgeGraphic.lineStyle(1, PIXI.utils.string2hex("#000000"), 0.3);
-        this.glContainerLines.addChild(this.edgeGraphic);
-        this.arcGraphic = new PIXI.Graphics();
-        this.glContainerArcs.addChild(this.arcGraphic);
-        this.clickNodes = this.paintNodes = data.nodes;
         this.paintCluster = data.cluster;
-        this.paintEdges = data.edges.filter(function (d) { return (d[3] < 2) ? true : false; });
-        // Default texture
-        var graphics = new PIXI.Graphics();
-        graphics.lineStyle(2, PIXI.utils.string2hex("#ffffff"), 1);
-        graphics.beginFill(PIXI.utils.string2hex("#555555"), 1);
-        graphics.drawCircle(50, 50, 50);
-        graphics.endFill();
-        this.texture = renderer.generateTexture(graphics, 1, this.hqScale);
-        Object.keys(this.paintCluster[this.clusterId].clusters).forEach(function (clusterKey) {
-            var color = _this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color;
-            var colorGraphics = new PIXI.Graphics();
-            colorGraphics.lineStyle(2, PIXI.utils.string2hex("#ffffff"), 1);
-            colorGraphics.beginFill(PIXI.utils.string2hex(color), 1);
-            colorGraphics.drawCircle(50, 50, 50);
-            colorGraphics.endFill();
-            _this_1.colorSprites[clusterKey] = renderer.generateTexture(colorGraphics, 1, _this_1.hqScale);
+        this.clickNodes = this.paintNodes = data.nodes.map(function (node) {
+            var color = [85 / 255, 85 / 255, 85 / 255];
+            if (node[6][_this_1.clusterId].length > 0 &&
+                node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
+                var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
+                color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+            }
+            return {
+                color: color,
+                size: node[10] * 4,
+                x: node[11],
+                y: node[12],
+            };
         });
-        canvas.call(d3.zoom()
+        this.paintEdges = data.edges.filter(function (d) { return (d[3] < 2) ? true : false; });
+        this.paintEdgesIndex = [];
+        // this.resize(false);
+        // d3.select(window).on("resize", () => {
+        //   this.handleResize();
+        // });
+        // canvas
+        var canvas = this.container.append("div")
+            .style("width", this.width + "px")
+            .style("height", this.height + "px")
+            .attr("id", "overview-regl-canvas");
+        this.canvasTransform = d3.zoomIdentity;
+        this.glBuild();
+    };
+    NetworkVis.prototype.glBuild = function () {
+        var _this_1 = this;
+        this.regl = REGL(document.getElementById("overview-regl-canvas"));
+        d3.select("#overview-regl-canvas").call(d3.zoom()
             .scaleExtent([0.1, 8])
             .on("zoom", function () { _this_1.zoom(_this_1); }));
-        canvas.on("click", function () {
-            var x = d3.event.pageX;
-            var y = d3.event.pageY;
-            var hit = false;
-            _this_1.clickNodes.forEach(function (node) {
-                var dist = Math.sqrt(Math.pow((x - _this_1.canvasTransform.x) - (node[11] + _this_1.width / 2) * _this_1.canvasTransform.k, 2)
-                    + Math.pow((y - _this_1.canvasTransform.y) - (node[12] + _this_1.height / 2) * _this_1.canvasTransform.k, 2));
-                if (dist <= node[10] * _this_1.canvasTransform.k) {
-                    _this_1.tooltip(node, node[11], node[12]);
-                    hit = true;
-                }
-            });
-            if (!hit) {
-                _this_1.container.selectAll("#tooltip").remove();
-            }
+        window.onbeforeunload = function () {
+            _this_1.regl.destroy();
+        };
+        this.reglDraw = this.regl({
+            attributes: {
+                color: this.paintNodes.map(function (d) { return d.color; }),
+                position: this.paintNodes.map(function (d) { return [d.x + _this_1.width / 2, d.y + _this_1.height / 2]; }),
+                size: this.paintNodes.map(function (d) { return d.size; }),
+            },
+            count: this.paintNodes.length,
+            frag: "\n        // set the precision of floating point numbers\n        precision highp float;\n        // this value is populated by the vertex shader\n        varying vec3 fragColor;\n        void main() {\n          float r = 0.0, delta = 0.0;\n          vec2 cxy = 2.0 * gl_PointCoord - 1.0;\n          r = dot(cxy, cxy);\n          if (r > 1.0) {\n              discard;\n          }\n          // gl_FragColor is a special variable that holds the color of a pixel\n          gl_FragColor = vec4(fragColor, 1);\n        }\n      ",
+            primitive: "points",
+            uniforms: {
+                offsetX: this.regl.prop("offsetX"),
+                offsetY: this.regl.prop("offsetY"),
+                scale: this.regl.prop("scale"),
+                stageHeight: this.regl.prop("stageHeight"),
+                stageWidth: this.regl.prop("stageWidth"),
+            },
+            vert: "\n        // per vertex attributes\n        attribute float size;\n        attribute vec2 position;\n        attribute vec3 color;\n        // variables to send to the fragment shader\n        varying vec3 fragColor;\n        // values that are the same for all vertices\n        uniform float scale;\n        uniform float offsetX;\n        uniform float offsetY;\n        uniform float stageWidth;\n        uniform float stageHeight;\n        // helper function to transform from pixel space to normalized device coordinates (NDC)\n        // in NDC (0,0) is the middle, (-1, 1) is the top left and (1, -1) is the bottom right.\n        vec2 normalizeCoords(vec2 position) {\n          // read in the positions into x and y vars\n          float x = position[0] * scale + offsetX;\n          float y = position[1] * scale + offsetY;\n          return vec2(\n            2.0 * ((x / stageWidth) - 0.5),\n            // invert y to treat [0,0] as bottom left in pixel space\n            -(2.0 * ((y / stageHeight) - 0.5))\n          );\n        }\n        void main() {\n          // update the size of a point based on the prop pointWidth\n          gl_PointSize = size * scale;\n          // send color to the fragment shader\n          fragColor = color;\n          // scale to normalized device coordinates\n          // gl_Position is a special variable that holds the position of a vertex\n          gl_Position = vec4(normalizeCoords(position), 0.0, 1.0);\n        }\n      ",
         });
-        this.paint();
-        this.addNodes();
+        this.reglDrawLine = this.regl({
+            attributes: {
+                position: this.paintNodes.map(function (d) { return [d.x + _this_1.width / 2, d.y + _this_1.height / 2]; }),
+            },
+            blend: {
+                enable: true,
+                func: {
+                    srcRGB: "src alpha",
+                    srcAlpha: 1,
+                    dstRGB: "one minus src alpha",
+                    dstAlpha: 1,
+                },
+                equation: {
+                    rgb: "add",
+                    alpha: "add",
+                },
+                color: [0, 0, 0, 0],
+            },
+            count: this.paintEdges.length,
+            depth: {
+                enable: false,
+            },
+            elements: this.paintEdges.map(function (edge) { return [edge[0], edge[1]]; }),
+            frag: "\n        precision mediump float;\n        uniform vec4 color;\n        void main() {\n          gl_FragColor = color;\n        }",
+            lineWidth: 1,
+            primitive: "line",
+            uniforms: {
+                offsetX: this.regl.prop("offsetX"),
+                offsetY: this.regl.prop("offsetY"),
+                color: [0, 0, 0, 0.5],
+                scale: this.regl.prop("scale"),
+                stageHeight: this.regl.prop("stageHeight"),
+                stageWidth: this.regl.prop("stageWidth"),
+            },
+            vert: "\n        precision mediump float;\n        attribute vec2 position;\n        uniform float scale;\n        uniform float offsetX;\n        uniform float offsetY;\n        uniform float stageWidth;\n        uniform float stageHeight;\n        vec2 normalizeCoords(vec2 position) {\n          // read in the positions into x and y vars\n          float x = position[0] * scale + offsetX;\n          float y = position[1] * scale + offsetY;\n          return vec2(\n            2.0 * ((x / stageWidth) - 0.5),\n            // invert y to treat [0,0] as bottom left in pixel space\n            -(2.0 * ((y / stageHeight) - 0.5))\n          );\n        }\n        void main() {\n          gl_Position = vec4(normalizeCoords(position), 0.0, 1.0);\n        }",
+        });
+        this.time = 1;
+        this.update(false);
     };
-    NetworkVis.prototype.addNodes = function () {
+    NetworkVis.prototype.glAnimate = function () {
         var _this_1 = this;
-        var limit = 100;
-        if (this.paintNodeCount < this.paintNodes.length) {
-            var _loop_1 = function (i) {
-                var node = this_1.paintNodes[this_1.paintNodeCount];
-                this_1.paintNodeCount += 1;
-                var texture = this_1.texture;
-                if (node[6][this_1.clusterId].length > 0 &&
-                    node[6][this_1.clusterId][0] in this_1.paintCluster[this_1.clusterId].clusters) {
-                    texture = this_1.colorSprites[node[6][this_1.clusterId][0]];
-                }
-                if (!this_1.destroyed) {
-                    var sprite = new PIXI.Sprite(texture);
-                    sprite.anchor.set(0.5, 0.5);
-                    sprite.x = node[11] + this_1.width / 2;
-                    sprite.y = node[12] + this_1.height / 2;
-                    sprite.width = node[10] * 2;
-                    sprite.height = node[10] * 2;
-                    this_1.glContainer.addChild(sprite);
-                    // ---- paint friend arcs
-                    var arc_1 = new PIXI.Graphics();
-                    var startAngle_1 = 0;
-                    var fullCount_1 = 0;
-                    Object.keys(node[13][this_1.clusterId]).forEach(function (clusterKey) {
-                        fullCount_1 += node[13][_this_1.clusterId][clusterKey];
-                    });
-                    Object.keys(node[13][this_1.clusterId]).forEach(function (clusterKey) {
-                        var angle = (2 * Math.PI / fullCount_1) * node[13][_this_1.clusterId][clusterKey];
-                        var friendColor = "#555555";
-                        if (clusterKey in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                            friendColor = _this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color;
-                        }
-                        arc_1.lineStyle(1, PIXI.utils.string2hex("#ffffff"), 1);
-                        arc_1.beginFill(PIXI.utils.string2hex(friendColor));
-                        arc_1.arc(0, 0, node[10] + 5, startAngle_1, startAngle_1 + angle);
-                        arc_1.arc(0, 0, node[10] + 1, startAngle_1 + angle, startAngle_1, true);
-                        arc_1.endFill();
-                        startAngle_1 += angle;
-                    });
-                    arc_1.position.set(node[11] + this_1.width / 2, node[12] + this_1.height / 2);
-                    this_1.glContainerArcs.addChild(arc_1);
-                }
-            };
-            var this_1 = this;
-            for (var i = 0; i < limit && this.paintNodeCount < this.paintNodes.length; i += 1) {
-                _loop_1(i);
-            }
-            window.requestAnimationFrame(function () { return _this_1.addNodes(); });
-        }
-        else if (this.paintEdgeCount < this.paintEdges.length) {
-            // paint edges
-            for (var i = 0; i < limit && this.paintEdgeCount < this.paintEdges.length; i += 1) {
-                var edge = this.paintEdges[this.paintEdgeCount];
-                this.paintEdgeCount += 1;
-                this.edgeGraphic.moveTo((this.paintNodes[edge[0]][11] + this.width / 2), (this.paintNodes[edge[0]][12] + this.height / 2));
-                this.edgeGraphic.lineTo((this.paintNodes[edge[1]][11] + this.width / 2), (this.paintNodes[edge[1]][12] + this.height / 2));
-            }
-            window.requestAnimationFrame(function () { return _this_1.addNodes(); });
+        if (!this.frameLoop) {
+            this.frameLoop = this.regl.frame(function () {
+                _this_1.regl.clear({
+                    color: [1, 1, 1, 1],
+                    depth: 1,
+                });
+                _this_1.reglDrawLine({
+                    offsetX: _this_1.canvasTransform.x,
+                    offsetY: _this_1.canvasTransform.y,
+                    scale: _this_1.canvasTransform.k,
+                    stageHeight: _this_1.height,
+                    stageWidth: _this_1.width,
+                });
+                _this_1.reglDraw({
+                    offsetX: _this_1.canvasTransform.x,
+                    offsetY: _this_1.canvasTransform.y,
+                    scale: _this_1.canvasTransform.k,
+                    stageHeight: _this_1.height,
+                    stageWidth: _this_1.width,
+                });
+                _this_1.frameLoop.cancel();
+                _this_1.frameLoop = false;
+            });
         }
     };
     NetworkVis.prototype.update = function (data) {
-        d3.select(".centerGroup")
-            .attr("transform", "translate(" + this.width / 2 + "," + this.height / 2 + ")");
-        d3.selectAll("canvas")
-            .attr("width", this.width * this.hqScale)
-            .attr("height", this.height * this.hqScale);
-        if (data) {
-            // rebuild
-        }
+        // this.svg.attr("transform", `translate(${this.width / 2},${this.height / 2}) scale(${this.scaleTarget})`);
+        this.container.select("#overview-regl-canvas")
+            .style("width", this.width + "px")
+            .style("height", this.height + "px");
+        this.container.select("#overview-regl-canvas canvas")
+            .attr("width", this.width * 2)
+            .attr("height", this.height * 2)
+            .style("width", this.width + "px")
+            .style("height", this.height + "px");
+        this.regl.poll();
+        this.glAnimate();
     };
     return NetworkVis;
 }(vis_1.Vis));

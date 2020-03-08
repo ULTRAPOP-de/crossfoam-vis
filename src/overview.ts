@@ -13,7 +13,6 @@ class OverviewVis extends Vis {
   public g;
   public regl;
   public reglDraw;
-  public points;
   public time = 1;
   public scaleTarget = 1;
   public navData;
@@ -84,6 +83,7 @@ class OverviewVis extends Vis {
     });
 
     this.paintNodes = [...data.nodes, ...data.proxies, ...tempLeafs];
+    this.clickNodes = [...data.nodes, ...data.proxies];
     this.paintCluster = data.cluster;
 
     this.resize(false);
@@ -188,7 +188,11 @@ class OverviewVis extends Vis {
       .style("fill", "transparent")
       .style("stroke", "rgba(0,0,0,0.2)");
 
-    this.points = this.paintNodes.map((node) => {
+    const pointColors = [];
+    const pointPositions = [];
+    const pointSizes = [];
+
+    this.paintNodes.forEach((node) => {
       let color = [85 / 255, 85 / 255, 85 / 255];
 
       if (node[6][this.clusterId].length > 0 &&
@@ -197,15 +201,11 @@ class OverviewVis extends Vis {
         color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
       }
 
-      return {
-        color,
-        size: node[7] * 4,
-        x: node[8],
-        y: node[9],
-      };
-    });
+      pointColors.push(color);
+      pointPositions.push([node[8], node[9]]);
+      pointSizes.push(node[7] * 4);
 
-    this.clickNodes = [...data.nodes, ...data.proxies];
+    });
 
     const navigation = this.container.append("div")
       .attr("id", "overview-navigation")
@@ -291,10 +291,6 @@ class OverviewVis extends Vis {
       this.update(false);
     });
 
-    this.glBuild();
-  }
-
-  public glBuild() {
     this.regl = REGL(document.getElementById("overview-regl-canvas"));
 
     window.onbeforeunload = () => {
@@ -303,11 +299,11 @@ class OverviewVis extends Vis {
 
     this.reglDraw = this.regl({
       attributes: {
-        color: this.points.map((d) => d.color),
-        position: this.points.map((d) => [d.x, d.y]),
-        size: this.points.map((d) => d.size),
+        color: pointColors,
+        position: pointPositions,
+        size: pointSizes,
       },
-      count: this.points.length,
+      count: pointColors.length,
       frag: `
         // set the precision of floating point numbers
         precision highp float;

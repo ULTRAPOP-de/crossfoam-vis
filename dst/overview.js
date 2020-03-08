@@ -87,6 +87,7 @@ var OverviewVis = /** @class */ (function (_super) {
             ];
         });
         this.paintNodes = __spreadArrays(data.nodes, data.proxies, tempLeafs);
+        this.clickNodes = __spreadArrays(data.nodes, data.proxies);
         this.paintCluster = data.cluster;
         this.resize(false);
         d3.select(window).on("resize", function () {
@@ -163,21 +164,20 @@ var OverviewVis = /** @class */ (function (_super) {
             .attr("r", imageSize / 2 + 2)
             .style("fill", "transparent")
             .style("stroke", "rgba(0,0,0,0.2)");
-        this.points = this.paintNodes.map(function (node) {
+        var pointColors = [];
+        var pointPositions = [];
+        var pointSizes = [];
+        this.paintNodes.forEach(function (node) {
             var color = [85 / 255, 85 / 255, 85 / 255];
             if (node[6][_this_1.clusterId].length > 0 &&
                 node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
                 var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
                 color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
             }
-            return {
-                color: color,
-                size: node[7] * 4,
-                x: node[8],
-                y: node[9],
-            };
+            pointColors.push(color);
+            pointPositions.push([node[8], node[9]]);
+            pointSizes.push(node[7] * 4);
         });
-        this.clickNodes = __spreadArrays(data.nodes, data.proxies);
         var navigation = this.container.append("div")
             .attr("id", "overview-navigation")
             .append("svg");
@@ -247,21 +247,17 @@ var OverviewVis = /** @class */ (function (_super) {
             _this_1.time = 0;
             _this_1.update(false);
         });
-        this.glBuild();
-    };
-    OverviewVis.prototype.glBuild = function () {
-        var _this_1 = this;
         this.regl = REGL(document.getElementById("overview-regl-canvas"));
         window.onbeforeunload = function () {
             _this_1.regl.destroy();
         };
         this.reglDraw = this.regl({
             attributes: {
-                color: this.points.map(function (d) { return d.color; }),
-                position: this.points.map(function (d) { return [d.x, d.y]; }),
-                size: this.points.map(function (d) { return d.size; }),
+                color: pointColors,
+                position: pointPositions,
+                size: pointSizes,
             },
-            count: this.points.length,
+            count: pointColors.length,
             frag: "\n        // set the precision of floating point numbers\n        precision highp float;\n        // this value is populated by the vertex shader\n        varying vec3 fragColor;\n        void main() {\n          float r = 0.0, delta = 0.0;\n          vec2 cxy = 2.0 * gl_PointCoord - 1.0;\n          r = dot(cxy, cxy);\n          if (r > 1.0) {\n              discard;\n          }\n          // gl_FragColor is a special variable that holds the color of a pixel\n          gl_FragColor = vec4(fragColor, 1);\n        }\n      ",
             primitive: "points",
             uniforms: {
