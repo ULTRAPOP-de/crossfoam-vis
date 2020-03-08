@@ -38,22 +38,21 @@ var NetworkVis = /** @class */ (function (_super) {
     NetworkVis.prototype.build = function (data, centralNode) {
         var _this_1 = this;
         this.paintCluster = data.cluster;
-        this.clickNodes = this.paintNodes = data.nodes.map(function (node) {
+        var pointColors = [];
+        var pointPositions = [];
+        var pointSizes = [];
+        data.nodes.forEach(function (node) {
             var color = [85 / 255, 85 / 255, 85 / 255];
             if (node[6][_this_1.clusterId].length > 0 &&
                 node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
                 var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
                 color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
             }
-            return {
-                color: color,
-                size: node[10] * 4,
-                x: node[11],
-                y: node[12],
-            };
+            pointColors.push(color);
+            pointPositions.push([node[11] + _this_1.width / 2, node[12] + _this_1.height / 2]);
+            pointSizes.push(node[10] * 4);
         });
         this.paintEdges = data.edges.filter(function (d) { return (d[3] < 2) ? true : false; });
-        this.paintEdgesIndex = [];
         // this.resize(false);
         // d3.select(window).on("resize", () => {
         //   this.handleResize();
@@ -64,10 +63,6 @@ var NetworkVis = /** @class */ (function (_super) {
             .style("height", this.height + "px")
             .attr("id", "overview-regl-canvas");
         this.canvasTransform = d3.zoomIdentity;
-        this.glBuild();
-    };
-    NetworkVis.prototype.glBuild = function () {
-        var _this_1 = this;
         this.regl = REGL(document.getElementById("overview-regl-canvas"));
         d3.select("#overview-regl-canvas").call(d3.zoom()
             .scaleExtent([0.1, 8])
@@ -77,11 +72,11 @@ var NetworkVis = /** @class */ (function (_super) {
         };
         this.reglDraw = this.regl({
             attributes: {
-                color: this.paintNodes.map(function (d) { return d.color; }),
-                position: this.paintNodes.map(function (d) { return [d.x + _this_1.width / 2, d.y + _this_1.height / 2]; }),
-                size: this.paintNodes.map(function (d) { return d.size; }),
+                color: pointColors,
+                position: pointPositions,
+                size: pointSizes,
             },
-            count: this.paintNodes.length,
+            count: pointColors.length,
             frag: "\n        // set the precision of floating point numbers\n        precision highp float;\n        // this value is populated by the vertex shader\n        varying vec3 fragColor;\n        void main() {\n          float r = 0.0, delta = 0.0;\n          vec2 cxy = 2.0 * gl_PointCoord - 1.0;\n          r = dot(cxy, cxy);\n          if (r > 1.0) {\n              discard;\n          }\n          // gl_FragColor is a special variable that holds the color of a pixel\n          gl_FragColor = vec4(fragColor, 1);\n        }\n      ",
             primitive: "points",
             uniforms: {
@@ -95,7 +90,7 @@ var NetworkVis = /** @class */ (function (_super) {
         });
         this.reglDrawLine = this.regl({
             attributes: {
-                position: this.paintNodes.map(function (d) { return [d.x + _this_1.width / 2, d.y + _this_1.height / 2]; }),
+                position: pointPositions,
             },
             blend: {
                 enable: true,

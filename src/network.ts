@@ -11,7 +11,6 @@ class NetworkVis extends Vis {
   public clickNodes;
   public paintNodes;
   public paintEdges;
-  public paintEdgesIndex;
   public time = 0;
   public frameLoop: any = false;
 
@@ -31,7 +30,11 @@ class NetworkVis extends Vis {
 
     this.paintCluster = data.cluster;
 
-    this.clickNodes = this.paintNodes = data.nodes.map((node) => {
+    const pointColors = [];
+    const pointPositions = [];
+    const pointSizes = [];
+
+    data.nodes.forEach((node) => {
       let color = [85 / 255, 85 / 255, 85 / 255];
 
       if (node[6][this.clusterId].length > 0 &&
@@ -40,16 +43,12 @@ class NetworkVis extends Vis {
         color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
       }
 
-      return {
-        color,
-        size: node[10] * 4,
-        x: node[11],
-        y: node[12],
-      };
+      pointColors.push(color);
+      pointPositions.push([node[11] + this.width / 2, node[12] + this.height / 2]);
+      pointSizes.push(node[10] * 4);
     });
 
     this.paintEdges = data.edges.filter((d) => (d[3] < 2) ? true : false);
-    this.paintEdgesIndex = [];
 
     // this.resize(false);
 
@@ -65,10 +64,6 @@ class NetworkVis extends Vis {
     
     this.canvasTransform = d3.zoomIdentity;
 
-    this.glBuild();
-  }
-
-  public glBuild() {
     this.regl = REGL(document.getElementById("overview-regl-canvas"));
 
     d3.select("#overview-regl-canvas").call(d3.zoom()
@@ -82,11 +77,11 @@ class NetworkVis extends Vis {
 
     this.reglDraw = this.regl({
       attributes: {
-        color: this.paintNodes.map((d) => d.color),
-        position: this.paintNodes.map((d) => [d.x + this.width / 2, d.y + this.height / 2]),
-        size: this.paintNodes.map((d) => d.size),
+        color: pointColors,
+        position: pointPositions,
+        size: pointSizes,
       },
-      count: this.paintNodes.length,
+      count: pointColors.length,
       frag: `
         // set the precision of floating point numbers
         precision highp float;
@@ -150,7 +145,7 @@ class NetworkVis extends Vis {
 
     this.reglDrawLine = this.regl({
       attributes: {
-        position: this.paintNodes.map((d) => [d.x + this.width / 2, d.y + this.height / 2]),
+        position: pointPositions,
       },
       blend: {
         enable: true,
