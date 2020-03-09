@@ -37,9 +37,6 @@ var OverviewVis = /** @class */ (function (_super) {
         _this_1.currentScale = 0;
         _this_1.lineTarget = 0;
         _this_1.frameLoop = false;
-        _this_1.handleResize = utils_1.debounce(function () {
-            _this_1.resize(true);
-        }, 200, true);
         _this_1.helpData = [
             browser.i18n.getMessage("helpOverview_1"),
             browser.i18n.getMessage("helpOverview_2"),
@@ -50,6 +47,9 @@ var OverviewVis = /** @class */ (function (_super) {
             browser.i18n.getMessage("helpOverview_7"),
             browser.i18n.getMessage("helpOverview_8"),
         ];
+        _this_1.handleResize = utils_1.debounce(function () {
+            _this_1.resize(true);
+        }, 200, true);
         return _this_1;
     }
     OverviewVis.prototype.destroyTooltip = function () {

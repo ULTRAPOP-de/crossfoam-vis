@@ -26,10 +26,6 @@ class OverviewVis extends Vis {
   public navDist;
   public frameLoop: any = false;
 
-  public handleResize = debounce(() => {
-    this.resize(true);
-  }, 200, true);
-
   public helpData = [
     browser.i18n.getMessage("helpOverview_1"),
     browser.i18n.getMessage("helpOverview_2"),
@@ -40,6 +36,10 @@ class OverviewVis extends Vis {
     browser.i18n.getMessage("helpOverview_7"),
     browser.i18n.getMessage("helpOverview_8"),
   ];
+
+  public handleResize = debounce(() => {
+    this.resize(true);
+  }, 200, true);
 
   public destroyTooltip() {
     const tooltip = this.container.selectAll("#tooltip");
