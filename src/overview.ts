@@ -114,10 +114,19 @@ class OverviewVis extends Vis {
           );
 
           if (dist <= node[7] * this.scaleTarget) {
+            let color = "#555555";
+            if (node[6][this.clusterId].length > 0 &&
+              node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
+              const rgb = d3.color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
+              color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            }
+
             this.tooltip(
               node,
               node[8] * this.scaleTarget + this.width / 2,
               node[9] * this.scaleTarget + this.height / 2,
+              color,
+              [],
             );
             hit = true;
           }

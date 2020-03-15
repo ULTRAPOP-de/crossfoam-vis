@@ -63,24 +63,30 @@ var Vis = /** @class */ (function () {
     Vis.prototype.update = function (data) {
         // destroy function
     };
-    Vis.prototype.tooltip = function (data, _x, _y) {
+    Vis.prototype.tooltip = function (data, _x, _y, color, actionLinks) {
+        var _this = this;
         this.container.selectAll("#tooltip").remove();
-        var x = _x; // (this.width / 2 + _x) * this.canvasTransform.k + this.canvasTransform.x;
-        var y = _y; // (this.height / 2 + _y) * this.canvasTransform.k + this.canvasTransform.y;
+        var x = _x;
+        var y = _y;
+        var linkPath = {
+            x1: 0,
+            x2: 0,
+            y1: 0,
+            y2: 0,
+        };
+        var linkSize = 12;
+        var linkPadding = 10;
         var wrapper = this.container.append("div")
             .attr("id", "tooltip")
-            .style("top", y + "px");
-        if (x < this.width / 2) {
-            wrapper
-                .style("left", x + "px")
-                .attr("class", "rightSide");
-        }
-        else {
-            wrapper
-                .style("right", (this.width - x) + "px")
-                .attr("class", "leftSide");
-        }
-        var contentHolder = wrapper.append("div");
+            .on("mouseleave", function () {
+            _this.container.selectAll("#tooltip").remove();
+        });
+        var linkImg = wrapper.append("svg")
+            .style("height", (linkSize + 2) + "px")
+            .style("width", (linkSize + 2) + "px");
+        var contentHolder = wrapper.append("div")
+            .style("border-color", color)
+            .attr("id", "tooltip--contentHolder");
         var url = "https://www.twitter.com/" +
             ((Number.isInteger(parseInt(data[1], 10))) ? data[1] : ("i/user/" + data[1]));
         contentHolder.append("span")
@@ -100,6 +106,49 @@ var Vis = /** @class */ (function () {
         contentHolder.append("span")
             .attr("class", "tooltip--bottomLine")
             .html(((data[3] !== 0 || data[2] !== 0) ? "Friends:" + ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " | Followers:" + ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | " : "") + ("Connections:" + ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage())));
+        if (actionLinks && actionLinks.length > 0) {
+            contentHolder.append("p")
+                .attr("id", "tooltip--actionLinks")
+                .selectAll("span").data(actionLinks).enter().append("a")
+                .html(function (d) { return d.label; })
+                .attr("href", function (d) { return d.href; });
+        }
+        if (x < this.width / 2) {
+            wrapper
+                .style("left", x - linkPadding + "px")
+                .classed("rightSide", true);
+            linkImg.style("left", linkPadding + "px");
+            linkPath.x1 = linkSize + 2;
+            linkPath.x2 = -2;
+        }
+        else {
+            wrapper
+                .style("right", (this.width - x - linkPadding) + "px")
+                .classed("leftSide", true);
+            linkImg.style("left", (contentHolder.node().offsetWidth + linkPadding * 2 - 2) + "px");
+            linkPath.x1 = -2;
+            linkPath.x2 = linkSize + 2;
+        }
+        if (y > this.height / 2) {
+            wrapper
+                .style("bottom", (this.height - y - linkPadding) + "px")
+                .classed("upSide", true);
+            linkImg.style("top", (contentHolder.node().offsetHeight + linkPadding * 2 - 2) + "px");
+            linkPath.y1 = -2;
+            linkPath.y2 = linkSize + 2;
+        }
+        else {
+            wrapper
+                .style("top", y - linkPadding + "px")
+                .classed("downSide", true);
+            linkImg.style("top", linkPadding + "px");
+            linkPath.y1 = linkSize + 2;
+            linkPath.y2 = -2;
+        }
+        linkImg.append("path")
+            .style("stroke", color)
+            .style("stroke-width", 2)
+            .attr("d", "M" + linkPath.x1 + "," + linkPath.y1 + "L" + linkPath.x2 + "," + linkPath.y2);
     };
     Vis.prototype.help = function () {
         var _this = this;

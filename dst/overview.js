@@ -109,7 +109,13 @@ var OverviewVis = /** @class */ (function (_super) {
                 var dist = Math.sqrt(Math.pow(x - (node[8] * _this_1.scaleTarget + _this_1.width / 2), 2)
                     + Math.pow(y - (node[9] * _this_1.scaleTarget + _this_1.height / 2), 2));
                 if (dist <= node[7] * _this_1.scaleTarget) {
-                    _this_1.tooltip(node, node[8] * _this_1.scaleTarget + _this_1.width / 2, node[9] * _this_1.scaleTarget + _this_1.height / 2);
+                    var color = "#555555";
+                    if (node[6][_this_1.clusterId].length > 0 &&
+                        node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
+                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
+                        color = "rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")";
+                    }
+                    _this_1.tooltip(node, node[8] * _this_1.scaleTarget + _this_1.width / 2, node[9] * _this_1.scaleTarget + _this_1.height / 2, color, []);
                     hit = true;
                 }
             });

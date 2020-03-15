@@ -113,7 +113,14 @@ var NetworkVis = /** @class */ (function (_super) {
                 var dist = Math.sqrt(Math.pow(x - (node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x), 2)
                     + Math.pow(y - (node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y), 2));
                 if (dist <= pointSizes[ni] / 4 * _this_1.canvasTransform.k) {
-                    _this_1.tooltip(data.nodes[ni], node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x, node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y);
+                    var color = "#555555";
+                    if (data.nodes[ni][6][_this_1.clusterId].length > 0 &&
+                        data.nodes[ni][6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
+                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[data.nodes[ni][6][_this_1.clusterId]].color)
+                            .rgb();
+                        color = "rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")";
+                    }
+                    _this_1.tooltip(data.nodes[ni], node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x, node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y, color, []);
                     hit = true;
                 }
             });
