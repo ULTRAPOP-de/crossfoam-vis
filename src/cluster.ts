@@ -9,11 +9,18 @@ class ClusterVis extends Vis {
   public canvas;
   public ctx;
   public showEdges = false;
+  public showProxies = false;
   public outerSvg;
   public level = 0;
-  public graph = {nodes: [], links: []};
+  public graph = {
+    links: [],
+    nodeMap: {},
+    nodes: [],
+    proxieLinks: [],
+  };
   public zoomObj;
   public edgeToggle;
+  public proxyToggle;
 
   public helpData = [
   ];
@@ -100,6 +107,40 @@ class ClusterVis extends Vis {
       .attr("transform", "translate(-4, 20)")
       .html(browser.i18n.getMessage("visClusterToggleOff"));
 
+    this.proxyToggle = this.outerSvg.append("g")
+      .attr("id", "cluster-vis-showProxies-toggle")
+      .on("click", () => {
+        if (this.showProxies) {
+          proxyToggleG.select("text")
+            .html(browser.i18n.getMessage("visProxiesToggleOff"));
+        } else {
+          edgeToggleG.select("text")
+            .html(browser.i18n.getMessage("visProxiesToggleOn"));
+        }
+        this.showProxies = !this.showProxies;
+        this.proxyToggle.classed("active", this.showProxies);
+        this.paint();
+      });
+
+    const proxyToggleG = this.proxyToggle.append("g");
+
+    proxyToggleG.append("image")
+      .attr("class", "cluster-vis-showProxies-normal")
+      .attr("width", 51)
+      .attr("height", 33)
+      .attr("xlink:href", "../assets/images/vis--cluster--showProxies-normal@2x.png");
+
+    proxyToggleG.append("image")
+      .attr("class", "cluster-vis-showProxies-active")
+      .attr("width", 51)
+      .attr("height", 33)
+      .attr("xlink:href", "../assets/images/vis--cluster--showProxies-active@2x.png");
+
+    proxyToggleG.append("text")
+      .attr("text-anchor", "end")
+      .attr("transform", "translate(-4, 23)")
+      .html(browser.i18n.getMessage("visProxiesToggleOff"));
+
     this.resize(true);
 
     this.buildLevel0();
@@ -108,6 +149,7 @@ class ClusterVis extends Vis {
   public buildLevel0() {
     this.svg.selectAll("*").remove();
     this.edgeToggle.classed("invisible", true);
+    this.proxyToggle.classed("invisible", true);
 
     this.outerSvg.on("click", null);
 
@@ -292,8 +334,11 @@ class ClusterVis extends Vis {
   public buildLevel1(detailId: number) {
     this.svg.selectAll("*").remove();
     this.edgeToggle.classed("invisible", false);
-    this.showEdges = false;
     this.edgeToggle.classed("active", false);
+    this.showEdges = false;
+    this.proxyToggle.classed("invisible", false);
+    this.proxyToggle.classed("active", false);
+    this.showProxies = false;
 
     this.outerSvg.on("click", () => {
       if (this.level > 0) {
@@ -323,7 +368,12 @@ class ClusterVis extends Vis {
     this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
     this.level = 1;
 
-    this.graph = {nodes: [], links: []};
+    this.graph = {
+      links: [],
+      nodeMap: {},
+      nodes: [],
+      proxieLinks: [],
+    };
 
     const clusterMap = {};
     let emptyCluster = 0;
@@ -366,6 +416,7 @@ class ClusterVis extends Vis {
         }
 
         this.graph.nodes.push(node);
+        this.graph.nodeMap[node[0]] = this.graph.nodes.length - 1;
       }
     });
 
@@ -388,6 +439,7 @@ class ClusterVis extends Vis {
             r: 20,
         });
         clusterMap[cluster] = clusterTempId;
+        this.graph.nodeMap[clusterTempId] = this.graph.nodes.length - 1;
         ci += 1;
       }
     });
@@ -397,7 +449,6 @@ class ClusterVis extends Vis {
       const sourceCluster = this.paintNodes[edge[0]][6][this.clusterId][0];
       const targetCluster = this.paintNodes[edge[1]][6][this.clusterId][0];
 
-      // TODO: Make to edge sets, one including proxies and one not
       // The radi in this vis are also taken from the wrong numbers !!!!
       // TODO: The numbers in the cluster links are likely calculated including the proxies,
       // turn into array one number for proxie one for not!!!
@@ -411,7 +462,10 @@ class ClusterVis extends Vis {
             target: edge[1],
           });
         } else {
-          // move to different set
+          this.graph.proxieLinks.push({
+            source: this.graph.nodeMap[edge[0]],
+            target: this.graph.nodeMap[edge[1]],
+          });
         }
 
       } else if (sourceCluster.toString() === detailId.toString() ||
@@ -438,7 +492,15 @@ class ClusterVis extends Vis {
               clusterEdgeMap[edgeIndex] += 1;
           }
         } else {
-          // Store somewhere else
+          if (!(edgeIndex in clusterEdgeMap)) {
+            clusterEdgeMap[edgeIndex] = 1;
+            this.graph.proxieLinks.push({
+              source: this.graph.nodeMap[nodeId],
+              target: this.graph.nodeMap[foreignMappedIndex],
+            });
+          } else {
+              clusterEdgeMap[edgeIndex] += 1;
+          }
         }
       }
     });
@@ -480,24 +542,18 @@ class ClusterVis extends Vis {
       this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
 
       if (this.showEdges) {
-        this.ctx.strokeStyle = "rgba(0,0,0,0.1)";
+        this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
         this.graph.links.forEach((link) => {
-          const path = this.positionLink(link, true);
-          this.ctx.beginPath();
-          this.ctx.moveTo(
-            path[0] * 2,
-            path[1] * 2,
-          );
-          this.ctx.bezierCurveTo(
-            path[2] * 2,
-            path[3] * 2,
-            path[2] * 2,
-            path[3] * 2,
-            path[4] * 2,
-            path[5] * 2,
-          );
-          this.ctx.stroke();
+          this.positionLink(link, true);
         });
+        if (this.showProxies) {
+          this.graph.proxieLinks.forEach((link) => {
+            this.positionLink({
+              source: this.graph.nodes[link.source],
+              target: this.graph.nodes[link.target],
+            }, true);
+          });
+        }
       }
 
       this.graph.nodes.forEach((node) => {
@@ -564,6 +620,9 @@ class ClusterVis extends Vis {
     this.edgeToggle
       .attr("transform", `translate(${this.width - 73}, 67)`);
 
+    this.proxyToggle
+      .attr("transform", `translate(${this.width - 73}, 127)`);
+
     this.canvas
       .style("width", this.width + "px")
       .style("height", this.height + "px")
@@ -582,7 +641,7 @@ class ClusterVis extends Vis {
      a${r},${r} 0 ${(direction) ? "0" : "1"},${(direction) ? "1" : "0"} ${-r * 2},0Z`;
   }
 
-  public positionLink(d, raw = false): any {
+  public positionLink(d, draw = false): any {
     const offset = Math.sqrt(Math.pow(d.source.x - d.target.x, 2) + Math.pow(d.source.y - d.target.y, 2)) / 10;
 
     const midpointX = (d.source.x + d.target.x) / 2;
@@ -596,10 +655,24 @@ class ClusterVis extends Vis {
     const offSetX = midpointX + offset * (dy / normalise);
     const offSetY = midpointY - offset * (dx / normalise);
 
-    if (raw) {
-      return [d.source.x, d.source.y, offSetX, offSetY, d.target.x, d.target.y];
+    if (draw) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(
+        d.source.x * 2,
+        d.source.y * 2,
+      );
+      this.ctx.bezierCurveTo(
+        offSetX * 2,
+        offSetY * 2,
+        offSetX * 2,
+        offSetY * 2,
+        d.target.x * 2,
+        d.target.y * 2,
+      );
+      this.ctx.stroke();
+    } else {
+      return `M${d.source.x}, ${d.source.y}S${offSetX}, ${offSetY} ${d.target.x}, ${d.target.y}`;
     }
-    return `M${d.source.x}, ${d.source.y}S${offSetX}, ${offSetY} ${d.target.x}, ${d.target.y}`;
   }
 
 }

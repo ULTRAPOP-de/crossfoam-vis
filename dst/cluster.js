@@ -22,8 +22,14 @@ var ClusterVis = /** @class */ (function (_super) {
         _this_1.visType = "cluster";
         _this_1.imageSize = 48;
         _this_1.showEdges = false;
+        _this_1.showProxies = false;
         _this_1.level = 0;
-        _this_1.graph = { nodes: [], links: [] };
+        _this_1.graph = {
+            links: [],
+            nodeMap: {},
+            nodes: [],
+            proxieLinks: [],
+        };
         _this_1.helpData = [];
         return _this_1;
     }
@@ -95,6 +101,36 @@ var ClusterVis = /** @class */ (function (_super) {
             .attr("text-anchor", "end")
             .attr("transform", "translate(-4, 20)")
             .html(browser.i18n.getMessage("visClusterToggleOff"));
+        this.proxyToggle = this.outerSvg.append("g")
+            .attr("id", "cluster-vis-showProxies-toggle")
+            .on("click", function () {
+            if (_this_1.showProxies) {
+                proxyToggleG.select("text")
+                    .html(browser.i18n.getMessage("visProxiesToggleOff"));
+            }
+            else {
+                edgeToggleG.select("text")
+                    .html(browser.i18n.getMessage("visProxiesToggleOn"));
+            }
+            _this_1.showProxies = !_this_1.showProxies;
+            _this_1.proxyToggle.classed("active", _this_1.showProxies);
+            _this_1.paint();
+        });
+        var proxyToggleG = this.proxyToggle.append("g");
+        proxyToggleG.append("image")
+            .attr("class", "cluster-vis-showProxies-normal")
+            .attr("width", 51)
+            .attr("height", 33)
+            .attr("xlink:href", "../assets/images/vis--cluster--showProxies-normal@2x.png");
+        proxyToggleG.append("image")
+            .attr("class", "cluster-vis-showProxies-active")
+            .attr("width", 51)
+            .attr("height", 33)
+            .attr("xlink:href", "../assets/images/vis--cluster--showProxies-active@2x.png");
+        proxyToggleG.append("text")
+            .attr("text-anchor", "end")
+            .attr("transform", "translate(-4, 23)")
+            .html(browser.i18n.getMessage("visProxiesToggleOff"));
         this.resize(true);
         this.buildLevel0();
     };
@@ -102,6 +138,7 @@ var ClusterVis = /** @class */ (function (_super) {
         var _this_1 = this;
         this.svg.selectAll("*").remove();
         this.edgeToggle.classed("invisible", true);
+        this.proxyToggle.classed("invisible", true);
         this.outerSvg.on("click", null);
         // generate first level data
         var clusterCounts = {};
@@ -256,8 +293,11 @@ var ClusterVis = /** @class */ (function (_super) {
         var _this_1 = this;
         this.svg.selectAll("*").remove();
         this.edgeToggle.classed("invisible", false);
-        this.showEdges = false;
         this.edgeToggle.classed("active", false);
+        this.showEdges = false;
+        this.proxyToggle.classed("invisible", false);
+        this.proxyToggle.classed("active", false);
+        this.showProxies = false;
         this.outerSvg.on("click", function () {
             if (_this_1.level > 0) {
                 var x = d3.event.pageX;
@@ -278,7 +318,12 @@ var ClusterVis = /** @class */ (function (_super) {
         // Reset zoom
         this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
         this.level = 1;
-        this.graph = { nodes: [], links: [] };
+        this.graph = {
+            links: [],
+            nodeMap: {},
+            nodes: [],
+            proxieLinks: [],
+        };
         var clusterMap = {};
         var emptyCluster = 0;
         var clusters = Object.keys(this.paintCluster[this.clusterId].clusters);
@@ -315,6 +360,7 @@ var ClusterVis = /** @class */ (function (_super) {
                     img.src = node[14];
                 }
                 _this_1.graph.nodes.push(node);
+                _this_1.graph.nodeMap[node[0]] = _this_1.graph.nodes.length - 1;
             }
         });
         var idOffset = 1000000000;
@@ -334,6 +380,7 @@ var ClusterVis = /** @class */ (function (_super) {
                     r: 20,
                 });
                 clusterMap[cluster] = clusterTempId;
+                _this_1.graph.nodeMap[clusterTempId] = _this_1.graph.nodes.length - 1;
                 ci += 1;
             }
         });
@@ -341,7 +388,6 @@ var ClusterVis = /** @class */ (function (_super) {
         this.paintEdges.forEach(function (edge) {
             var sourceCluster = _this_1.paintNodes[edge[0]][6][_this_1.clusterId][0];
             var targetCluster = _this_1.paintNodes[edge[1]][6][_this_1.clusterId][0];
-            // TODO: Make to edge sets, one including proxies and one not
             // The radi in this vis are also taken from the wrong numbers !!!!
             // TODO: The numbers in the cluster links are likely calculated including the proxies,
             // turn into array one number for proxie one for not!!!
@@ -354,7 +400,10 @@ var ClusterVis = /** @class */ (function (_super) {
                     });
                 }
                 else {
-                    // move to different set
+                    _this_1.graph.proxieLinks.push({
+                        source: _this_1.graph.nodeMap[edge[0]],
+                        target: _this_1.graph.nodeMap[edge[1]],
+                    });
                 }
             }
             else if (sourceCluster.toString() === detailId.toString() ||
@@ -380,7 +429,16 @@ var ClusterVis = /** @class */ (function (_super) {
                     }
                 }
                 else {
-                    // Store somewhere else
+                    if (!(edgeIndex in clusterEdgeMap)) {
+                        clusterEdgeMap[edgeIndex] = 1;
+                        _this_1.graph.proxieLinks.push({
+                            source: _this_1.graph.nodeMap[nodeId],
+                            target: _this_1.graph.nodeMap[foreignMappedIndex],
+                        });
+                    }
+                    else {
+                        clusterEdgeMap[edgeIndex] += 1;
+                    }
                 }
             }
         });
@@ -415,14 +473,18 @@ var ClusterVis = /** @class */ (function (_super) {
             this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
             this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
             if (this.showEdges) {
-                this.ctx.strokeStyle = "rgba(0,0,0,0.1)";
+                this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
                 this.graph.links.forEach(function (link) {
-                    var path = _this_1.positionLink(link, true);
-                    _this_1.ctx.beginPath();
-                    _this_1.ctx.moveTo(path[0] * 2, path[1] * 2);
-                    _this_1.ctx.bezierCurveTo(path[2] * 2, path[3] * 2, path[2] * 2, path[3] * 2, path[4] * 2, path[5] * 2);
-                    _this_1.ctx.stroke();
+                    _this_1.positionLink(link, true);
                 });
+                if (this.showProxies) {
+                    this.graph.proxieLinks.forEach(function (link) {
+                        _this_1.positionLink({
+                            source: _this_1.graph.nodes[link.source],
+                            target: _this_1.graph.nodes[link.target],
+                        }, true);
+                    });
+                }
             }
             this.graph.nodes.forEach(function (node) {
                 _this_1.ctx.fillStyle = "#000000";
@@ -461,6 +523,8 @@ var ClusterVis = /** @class */ (function (_super) {
             .attr("height", this.height);
         this.edgeToggle
             .attr("transform", "translate(" + (this.width - 73) + ", 67)");
+        this.proxyToggle
+            .attr("transform", "translate(" + (this.width - 73) + ", 127)");
         this.canvas
             .style("width", this.width + "px")
             .style("height", this.height + "px")
@@ -473,8 +537,8 @@ var ClusterVis = /** @class */ (function (_super) {
     ClusterVis.prototype.circlePath = function (x, y, r, direction) {
         return "M" + x + "," + y + "      m" + -r + ", 0      a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + r * 2 + ",0      a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + -r * 2 + ",0Z";
     };
-    ClusterVis.prototype.positionLink = function (d, raw) {
-        if (raw === void 0) { raw = false; }
+    ClusterVis.prototype.positionLink = function (d, draw) {
+        if (draw === void 0) { draw = false; }
         var offset = Math.sqrt(Math.pow(d.source.x - d.target.x, 2) + Math.pow(d.source.y - d.target.y, 2)) / 10;
         var midpointX = (d.source.x + d.target.x) / 2;
         var midpointY = (d.source.y + d.target.y) / 2;
@@ -483,10 +547,15 @@ var ClusterVis = /** @class */ (function (_super) {
         var normalise = Math.sqrt((dx * dx) + (dy * dy));
         var offSetX = midpointX + offset * (dy / normalise);
         var offSetY = midpointY - offset * (dx / normalise);
-        if (raw) {
-            return [d.source.x, d.source.y, offSetX, offSetY, d.target.x, d.target.y];
+        if (draw) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(d.source.x * 2, d.source.y * 2);
+            this.ctx.bezierCurveTo(offSetX * 2, offSetY * 2, offSetX * 2, offSetY * 2, d.target.x * 2, d.target.y * 2);
+            this.ctx.stroke();
         }
-        return "M" + d.source.x + ", " + d.source.y + "S" + offSetX + ", " + offSetY + " " + d.target.x + ", " + d.target.y;
+        else {
+            return "M" + d.source.x + ", " + d.source.y + "S" + offSetX + ", " + offSetY + " " + d.target.x + ", " + d.target.y;
+        }
     };
     return ClusterVis;
 }(vis_1.Vis));
