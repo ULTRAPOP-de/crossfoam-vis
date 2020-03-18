@@ -396,8 +396,8 @@ class ClusterVis extends Vis {
 
     this.paintNodes.forEach((node) => {
       if (node[6][this.clusterId][0].toString() === detailId.toString()) {
-        if (node[13][this.clusterId][detailId] > rScaleMax) {
-          rScaleMax = node[13][this.clusterId][detailId];
+        if (node[13][this.clusterId][detailId][0] > rScaleMax) {
+          rScaleMax = node[13][this.clusterId][detailId][0];
         }
 
         if (node[14] !== undefined && node[14] !== null) {
@@ -443,6 +443,8 @@ class ClusterVis extends Vis {
         ci += 1;
       }
     });
+
+    console.log(this.paintNodes, this.paintEdges);
 
     const clusterEdgeMap = {};
     this.paintEdges.forEach((edge) => {
@@ -516,7 +518,7 @@ class ClusterVis extends Vis {
     this.graph.nodes.forEach((node) => {
       let r = 20;
       if (13 in node) {
-        r = rScale(node[13][this.clusterId][detailId]);
+        r = rScale(node[13][this.clusterId][detailId][0]);
       }
       node.r = r;
     });

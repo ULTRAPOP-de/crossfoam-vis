@@ -61,18 +61,21 @@ var NetworkVis = /** @class */ (function (_super) {
             pointSizes.push(node[10] * 4);
             var fullCount = 0;
             Object.keys(node[13][_this_1.clusterId]).forEach(function (clusterKey) {
-                fullCount += node[13][_this_1.clusterId][clusterKey];
+                fullCount += node[13][_this_1.clusterId][clusterKey][0];
+                // fullCount += node[13][this.clusterId][clusterKey][1];
             });
             var assignLinks = function (cNode, clusterKey, size) {
-                var friendColor = [85 / 255, 85 / 255, 85 / 255];
-                if (clusterKey in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                    var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color).rgb();
-                    friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+                if (cNode[13][_this_1.clusterId][clusterKey][0] > 0) {
+                    var friendColor = [85 / 255, 85 / 255, 85 / 255];
+                    if (clusterKey in _this_1.paintCluster[_this_1.clusterId].clusters) {
+                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color).rgb();
+                        friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+                    }
+                    pointMultiColors.push(friendColor);
+                    pointMultiPositions.push([cNode[11] + _this_1.width / 2, cNode[12] + _this_1.height / 2]);
+                    size += cNode[13][_this_1.clusterId][clusterKey][0];
+                    pointMultiSizes.push(Math.sqrt(((Math.PI * Math.pow(cNode[10] * 4, 2)) / fullCount * size) / Math.PI));
                 }
-                pointMultiColors.push(friendColor);
-                pointMultiPositions.push([cNode[11] + _this_1.width / 2, cNode[12] + _this_1.height / 2]);
-                size += cNode[13][_this_1.clusterId][clusterKey];
-                pointMultiSizes.push(Math.sqrt(((Math.PI * Math.pow(cNode[10] * 4, 2)) / fullCount * size) / Math.PI));
                 return size;
             };
             // the assigned cluster color should be in the center

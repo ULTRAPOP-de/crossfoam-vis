@@ -342,8 +342,8 @@ var ClusterVis = /** @class */ (function (_super) {
         var rScaleMax = 0;
         this.paintNodes.forEach(function (node) {
             if (node[6][_this_1.clusterId][0].toString() === detailId.toString()) {
-                if (node[13][_this_1.clusterId][detailId] > rScaleMax) {
-                    rScaleMax = node[13][_this_1.clusterId][detailId];
+                if (node[13][_this_1.clusterId][detailId][0] > rScaleMax) {
+                    rScaleMax = node[13][_this_1.clusterId][detailId][0];
                 }
                 if (node[14] !== undefined && node[14] !== null) {
                     var img = document.createElement("img");
@@ -384,6 +384,7 @@ var ClusterVis = /** @class */ (function (_super) {
                 ci += 1;
             }
         });
+        console.log(this.paintNodes, this.paintEdges);
         var clusterEdgeMap = {};
         this.paintEdges.forEach(function (edge) {
             var sourceCluster = _this_1.paintNodes[edge[0]][6][_this_1.clusterId][0];
@@ -451,7 +452,7 @@ var ClusterVis = /** @class */ (function (_super) {
         this.graph.nodes.forEach(function (node) {
             var r = 20;
             if (13 in node) {
-                r = rScale(node[13][_this_1.clusterId][detailId]);
+                r = rScale(node[13][_this_1.clusterId][detailId][0]);
             }
             node.r = r;
         });

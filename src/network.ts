@@ -60,21 +60,24 @@ class NetworkVis extends Vis {
 
       let fullCount = 0;
       Object.keys(node[13][this.clusterId]).forEach((clusterKey) => {
-        fullCount += node[13][this.clusterId][clusterKey];
+        fullCount += node[13][this.clusterId][clusterKey][0];
+        // fullCount += node[13][this.clusterId][clusterKey][1];
       });
 
       const assignLinks = (cNode, clusterKey, size): number => {
-        let friendColor = [85 / 255, 85 / 255, 85 / 255];
-        if (clusterKey in this.paintCluster[this.clusterId].clusters) {
-          const rgb = d3.color(this.paintCluster[this.clusterId].clusters[clusterKey].color).rgb();
-          friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+        if (cNode[13][this.clusterId][clusterKey][0] > 0) {
+          let friendColor = [85 / 255, 85 / 255, 85 / 255];
+          if (clusterKey in this.paintCluster[this.clusterId].clusters) {
+            const rgb = d3.color(this.paintCluster[this.clusterId].clusters[clusterKey].color).rgb();
+            friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
+          }
+
+          pointMultiColors.push(friendColor);
+          pointMultiPositions.push([cNode[11] + this.width / 2, cNode[12] + this.height / 2]);
+
+          size += cNode[13][this.clusterId][clusterKey][0];
+          pointMultiSizes.push(Math.sqrt(((Math.PI * Math.pow(cNode[10] * 4, 2)) / fullCount * size) / Math.PI));
         }
-
-        pointMultiColors.push(friendColor);
-        pointMultiPositions.push([cNode[11] + this.width / 2, cNode[12] + this.height / 2]);
-
-        size += cNode[13][this.clusterId][clusterKey];
-        pointMultiSizes.push(Math.sqrt(((Math.PI * Math.pow(cNode[10] * 4, 2)) / fullCount * size) / Math.PI));
 
         return size;
       };
