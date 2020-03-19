@@ -23,12 +23,15 @@ var ClusterVis = /** @class */ (function (_super) {
         _this_1.imageSize = 48;
         _this_1.showEdges = false;
         _this_1.showProxies = false;
+        _this_1.showUserEdges = false;
         _this_1.level = 0;
         _this_1.graph = {
             links: [],
             nodeMap: {},
             nodes: [],
             proxieLinks: [],
+            userLinks: [],
+            userProxyLinks: [],
         };
         _this_1.helpData = [];
         return _this_1;
@@ -83,6 +86,9 @@ var ClusterVis = /** @class */ (function (_super) {
                     .html(browser.i18n.getMessage("visClusterToggleOn"));
             }
             _this_1.showEdges = !_this_1.showEdges;
+            if (_this_1.showEdges) {
+                _this_1.showUserEdges = false;
+            }
             _this_1.edgeToggle.classed("active", _this_1.showEdges);
             _this_1.paint();
         });
@@ -109,7 +115,7 @@ var ClusterVis = /** @class */ (function (_super) {
                     .html(browser.i18n.getMessage("visProxiesToggleOff"));
             }
             else {
-                edgeToggleG.select("text")
+                proxyToggleG.select("text")
                     .html(browser.i18n.getMessage("visProxiesToggleOn"));
             }
             _this_1.showProxies = !_this_1.showProxies;
@@ -289,8 +295,7 @@ var ClusterVis = /** @class */ (function (_super) {
             .style("font-size", 10)
             .attr("transform", "translate(" + (legendWidth + 5) + ", " + legendY + ")");
     };
-    ClusterVis.prototype.buildLevel1 = function (detailId) {
-        var _this_1 = this;
+    ClusterVis.prototype.resetCluster = function () {
         this.svg.selectAll("*").remove();
         this.edgeToggle.classed("invisible", false);
         this.edgeToggle.classed("active", false);
@@ -298,32 +303,86 @@ var ClusterVis = /** @class */ (function (_super) {
         this.proxyToggle.classed("invisible", false);
         this.proxyToggle.classed("active", false);
         this.showProxies = false;
+        this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
+        this.graph = {
+            links: [],
+            nodeMap: {},
+            nodes: [],
+            proxieLinks: [],
+            userLinks: [],
+            userProxyLinks: [],
+        };
+    };
+    ClusterVis.prototype.setupClick = function () {
+        var _this_1 = this;
         this.outerSvg.on("click", function () {
             if (_this_1.level > 0) {
                 var x = d3.event.pageX;
                 var y = d3.event.pageY;
-                var hit = _this_1.hitTest(x, y);
-                if (hit && hit[1] !== "cluster") {
+                var hit_1 = _this_1.hitTest(x, y);
+                if (hit_1 && hit_1[1] !== "cluster") {
                     var color = "#555555";
-                    if ("color" in hit) {
-                        color = hit.color;
+                    _this_1.showUserEdges = true;
+                    _this_1.showEdges = false;
+                    _this_1.graph.userLinks = [];
+                    _this_1.graph.userProxyLinks = [];
+                    _this_1.graph.links.forEach(function (link) {
+                        if (link.source[0] === hit_1[0] || link.target[0] === hit_1[0]) {
+                            _this_1.graph.userLinks.push(link);
+                        }
+                    });
+                    _this_1.graph.proxieLinks.forEach(function (link) {
+                        if (link.source === hit_1.index || link.target === hit_1.index) {
+                            _this_1.graph.userProxyLinks.push(link);
+                        }
+                    });
+                    if ("color" in hit_1) {
+                        color = hit_1.color;
                     }
-                    _this_1.tooltip(hit, hit.x * _this_1.canvasTransform.k + _this_1.canvasTransform.x, hit.y * _this_1.canvasTransform.k + _this_1.canvasTransform.y, color, []);
+                    _this_1.tooltip(hit_1, hit_1.x * _this_1.canvasTransform.k + _this_1.canvasTransform.x, hit_1.y * _this_1.canvasTransform.k + _this_1.canvasTransform.y, color, [{
+                            callback: function (d) {
+                                _this_1.container.selectAll("#tooltip").remove();
+                                _this_1.buildLevel2(d);
+                            },
+                            label: "Show connections to this user &raquo;",
+                        }]);
+                    _this_1.paint();
                 }
                 else {
                     _this_1.container.selectAll("#tooltip").remove();
                 }
             }
         });
-        // Reset zoom
-        this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
-        this.level = 1;
-        this.graph = {
-            links: [],
-            nodeMap: {},
-            nodes: [],
-            proxieLinks: [],
+    };
+    ClusterVis.prototype.setupSimulation = function (selector) {
+        var _this_1 = this;
+        this.simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(function (d) { return d[0]; }))
+            .force("charge", d3.forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
+            .force("collide", d3.forceCollide().radius(function (d) { return d.r + 20; }).iterations(2))
+            .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
+        var rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain(d3.extent(this.graph.nodes, selector));
+        this.graph.nodes.forEach(function (node) {
+            var r = 20;
+            if (13 in node) {
+                r = rScale(selector(node));
+            }
+            node.r = r;
+        });
+        var ticked = function () {
+            _this_1.paint();
         };
+        this.simulation
+            .nodes(this.graph.nodes)
+            .on("tick", ticked);
+        this.simulation.force("link")
+            .links(this.graph.links);
+    };
+    ClusterVis.prototype.buildLevel1 = function (detailId) {
+        var _this_1 = this;
+        this.resetCluster();
+        this.setupClick();
+        this.level = 1;
         var clusterMap = {};
         var emptyCluster = 0;
         var clusters = Object.keys(this.paintCluster[this.clusterId].clusters);
@@ -339,12 +398,8 @@ var ClusterVis = /** @class */ (function (_super) {
             radius = this.width;
         }
         radius = radius / 2 - 70;
-        var rScaleMax = 0;
         this.paintNodes.forEach(function (node) {
             if (node[6][_this_1.clusterId][0].toString() === detailId.toString()) {
-                if (node[13][_this_1.clusterId][detailId][0] > rScaleMax) {
-                    rScaleMax = node[13][_this_1.clusterId][detailId][0];
-                }
                 if (node[14] !== undefined && node[14] !== null) {
                     var img = document.createElement("img");
                     img.onerror = function (event) {
@@ -384,17 +439,13 @@ var ClusterVis = /** @class */ (function (_super) {
                 ci += 1;
             }
         });
-        console.log(this.paintNodes, this.paintEdges);
         var clusterEdgeMap = {};
         this.paintEdges.forEach(function (edge) {
             var sourceCluster = _this_1.paintNodes[edge[0]][6][_this_1.clusterId][0];
             var targetCluster = _this_1.paintNodes[edge[1]][6][_this_1.clusterId][0];
-            // The radi in this vis are also taken from the wrong numbers !!!!
-            // TODO: The numbers in the cluster links are likely calculated including the proxies,
-            // turn into array one number for proxie one for not!!!
             if (sourceCluster.toString() === detailId.toString() &&
                 targetCluster.toString() === detailId.toString()) {
-                if (edge[2] >= 1) {
+                if (edge[2] >= 2) {
                     _this_1.graph.links.push({
                         source: edge[0],
                         target: edge[1],
@@ -417,7 +468,7 @@ var ClusterVis = /** @class */ (function (_super) {
                 }
                 var foreignMappedIndex = clusterMap[_this_1.paintNodes[foreignId][6][_this_1.clusterId][0]];
                 var edgeIndex = nodeId + "-" + foreignMappedIndex;
-                if (edge[2] >= 1) {
+                if (edge[2] >= 2) {
                     if (!(edgeIndex in clusterEdgeMap)) {
                         clusterEdgeMap[edgeIndex] = 1;
                         _this_1.graph.links.push({
@@ -443,38 +494,91 @@ var ClusterVis = /** @class */ (function (_super) {
                 }
             }
         });
-        var simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(function (d) { return d[0]; }))
-            .force("charge", d3.forceManyBody().strength(-250))
-            .force("collide", d3.forceCollide().radius(function (d) { return d.r + 20; }).iterations(2))
-            .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
-        var rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain([1, rScaleMax]);
-        this.graph.nodes.forEach(function (node) {
-            var r = 20;
-            if (13 in node) {
-                r = rScale(node[13][_this_1.clusterId][detailId][0]);
+        this.setupSimulation(function (d) {
+            if (13 in d) {
+                return d[13][_this_1.clusterId][detailId][0];
             }
-            node.r = r;
+            return _this_1.graph.nodes.length;
         });
-        var ticked = function () {
-            _this_1.paint();
-        };
-        simulation
-            .nodes(this.graph.nodes)
-            .on("tick", ticked);
-        simulation.force("link")
-            .links(this.graph.links);
+    };
+    ClusterVis.prototype.buildLevel2 = function (data) {
+        var _this_1 = this;
+        this.resetCluster();
+        this.setupClick();
+        this.level = 2;
+        this.paintEdges.forEach(function (edge) {
+            if (edge[0] === data[0] || edge[1] === data[0]) {
+                [edge[0], edge[1]].forEach(function (nodeId) {
+                    if (!(nodeId in _this_1.graph.nodeMap)) {
+                        if (_this_1.paintNodes[nodeId][14] !== undefined && _this_1.paintNodes[nodeId][14] !== null) {
+                            var img = document.createElement("img");
+                            img.onerror = function (event) {
+                                event.path[0].src = "../assets/images/twitter_default_profile_normal.png";
+                            };
+                            img.onload = function (event) {
+                                _this_1.paintNodes[nodeId].imageLoad = true;
+                            };
+                            img.width = _this_1.imageSize;
+                            img.height = _this_1.imageSize;
+                            _this_1.paintNodes[nodeId].imageLoad = false;
+                            _this_1.paintNodes[nodeId].image = img;
+                            img.src = _this_1.paintNodes[nodeId][14];
+                        }
+                        _this_1.paintNodes[nodeId].rUserCount = 0;
+                        _this_1.paintNodes[nodeId].isCentral = false;
+                        if (nodeId === data[0]) {
+                            _this_1.paintNodes[nodeId].isCentral = true;
+                        }
+                        _this_1.graph.nodes.push(_this_1.paintNodes[nodeId]);
+                        _this_1.graph.nodeMap[nodeId] = _this_1.graph.nodes.length - 1;
+                    }
+                });
+            }
+        });
+        this.paintEdges.forEach(function (edge) {
+            if (edge[0] in _this_1.graph.nodeMap && edge[1] in _this_1.graph.nodeMap) {
+                if (edge[2] >= 2) {
+                    _this_1.graph.links.push({
+                        source: edge[0],
+                        target: edge[1],
+                    });
+                    [edge[0], edge[1]].forEach(function (nodeId) {
+                        _this_1.graph.nodes[_this_1.graph.nodeMap[nodeId]].rUserCount += 1;
+                    });
+                }
+                else {
+                    _this_1.graph.proxieLinks.push({
+                        source: _this_1.graph.nodeMap[edge[0]],
+                        target: _this_1.graph.nodeMap[edge[1]],
+                    });
+                }
+            }
+        });
+        this.setupSimulation(function (d) { return d.rUserCount; });
     };
     // TODO: Add debouncer
     ClusterVis.prototype.paint = function () {
         var _this_1 = this;
-        if (this.level === 1) {
+        if (this.level >= 1) {
             this.ctx.save();
             this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
             this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
             this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
-            if (this.showEdges) {
-                this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
+            this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
+            if (this.showUserEdges) {
+                this.graph.userLinks.forEach(function (link) {
+                    _this_1.positionLink(link, true);
+                });
+                if (this.showProxies) {
+                    this.graph.userProxyLinks.forEach(function (link) {
+                        _this_1.positionLink({
+                            source: _this_1.graph.nodes[link.source],
+                            target: _this_1.graph.nodes[link.target],
+                        }, true);
+                    });
+                }
+            }
+            else if (this.showEdges) {
                 this.graph.links.forEach(function (link) {
                     _this_1.positionLink(link, true);
                 });
@@ -490,8 +594,16 @@ var ClusterVis = /** @class */ (function (_super) {
             this.graph.nodes.forEach(function (node) {
                 _this_1.ctx.fillStyle = "#000000";
                 if ("image" in node && node.imageLoad && node.image.complete) {
+                    var extraRadius = 1;
+                    if (_this_1.level === 2) {
+                        extraRadius = 2;
+                        _this_1.ctx.fillStyle = _this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId][0]].color;
+                        if (node.isCentral) {
+                            extraRadius = 4;
+                        }
+                    }
                     _this_1.ctx.beginPath();
-                    _this_1.ctx.arc(node.x * 2, node.y * 2, node.r * 2 + 1, 0, 2 * Math.PI);
+                    _this_1.ctx.arc(node.x * 2, node.y * 2, node.r * 2 + extraRadius, 0, 2 * Math.PI);
                     _this_1.ctx.closePath();
                     _this_1.ctx.fill();
                     _this_1.ctx.save();
@@ -513,9 +625,6 @@ var ClusterVis = /** @class */ (function (_super) {
                 }
             });
             this.ctx.restore();
-        }
-        else if (this.level === 2) {
-            // Draw an individual user's network
         }
     };
     ClusterVis.prototype.update = function (data) {

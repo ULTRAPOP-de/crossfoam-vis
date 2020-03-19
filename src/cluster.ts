@@ -10,6 +10,7 @@ class ClusterVis extends Vis {
   public ctx;
   public showEdges = false;
   public showProxies = false;
+  public showUserEdges = false;
   public outerSvg;
   public level = 0;
   public graph = {
@@ -17,10 +18,13 @@ class ClusterVis extends Vis {
     nodeMap: {},
     nodes: [],
     proxieLinks: [],
+    userLinks: [],
+    userProxyLinks: [],
   };
   public zoomObj;
   public edgeToggle;
   public proxyToggle;
+  public simulation;
 
   public helpData = [
   ];
@@ -84,6 +88,9 @@ class ClusterVis extends Vis {
             .html(browser.i18n.getMessage("visClusterToggleOn"));
         }
         this.showEdges = !this.showEdges;
+        if (this.showEdges) {
+          this.showUserEdges = false;
+        }
         this.edgeToggle.classed("active", this.showEdges);
         this.paint();
       });
@@ -114,7 +121,7 @@ class ClusterVis extends Vis {
           proxyToggleG.select("text")
             .html(browser.i18n.getMessage("visProxiesToggleOff"));
         } else {
-          edgeToggleG.select("text")
+          proxyToggleG.select("text")
             .html(browser.i18n.getMessage("visProxiesToggleOn"));
         }
         this.showProxies = !this.showProxies;
@@ -331,7 +338,7 @@ class ClusterVis extends Vis {
       .attr("transform", `translate(${legendWidth + 5}, ${legendY})`);
   }
 
-  public buildLevel1(detailId: number) {
+  public resetCluster() {
     this.svg.selectAll("*").remove();
     this.edgeToggle.classed("invisible", false);
     this.edgeToggle.classed("active", false);
@@ -340,6 +347,19 @@ class ClusterVis extends Vis {
     this.proxyToggle.classed("active", false);
     this.showProxies = false;
 
+    this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
+
+    this.graph = {
+      links: [],
+      nodeMap: {},
+      nodes: [],
+      proxieLinks: [],
+      userLinks: [],
+      userProxyLinks: [],
+    };
+  }
+
+  public setupClick() {
     this.outerSvg.on("click", () => {
       if (this.level > 0) {
         const x = d3.event.pageX;
@@ -348,6 +368,21 @@ class ClusterVis extends Vis {
 
         if (hit && hit[1] !== "cluster") {
           let color = "#555555";
+          this.showUserEdges = true;
+          this.showEdges = false;
+          this.graph.userLinks = [];
+          this.graph.userProxyLinks = [];
+          this.graph.links.forEach((link) => {
+            if (link.source[0] === hit[0] || link.target[0] === hit[0]) {
+              this.graph.userLinks.push(link);
+            }
+          });
+          this.graph.proxieLinks.forEach((link) => {
+            if (link.source === hit.index || link.target === hit.index) {
+              this.graph.userProxyLinks.push(link);
+            }
+          });
+
           if ("color" in hit) {
             color = hit.color;
           }
@@ -356,24 +391,56 @@ class ClusterVis extends Vis {
             hit.x * this.canvasTransform.k + this.canvasTransform.x,
             hit.y * this.canvasTransform.k + this.canvasTransform.y,
             color,
-            [],
+            [{
+              callback: (d) => {
+                this.container.selectAll("#tooltip").remove();
+                this.buildLevel2(d);
+              },
+              label: "Show connections to this user &raquo;",
+            }],
           );
+          this.paint();
         } else {
           this.container.selectAll("#tooltip").remove();
         }
       }
     });
+  }
 
-    // Reset zoom
-    this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
-    this.level = 1;
+  public setupSimulation(selector: (d: any) => number) {
+    this.simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id((d) => d[0]))
+      .force("charge", d3.forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
+      .force("collide", d3.forceCollide().radius((d) => d.r + 20).iterations(2))
+      .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
 
-    this.graph = {
-      links: [],
-      nodeMap: {},
-      nodes: [],
-      proxieLinks: [],
+    const rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain(d3.extent(this.graph.nodes, selector));
+
+    this.graph.nodes.forEach((node) => {
+      let r = 20;
+      if (13 in node) {
+        r = rScale(selector(node));
+      }
+      node.r = r;
+    });
+
+    const ticked = () => {
+      this.paint();
     };
+
+    this.simulation
+      .nodes(this.graph.nodes)
+      .on("tick", ticked);
+
+    this.simulation.force("link")
+      .links(this.graph.links);
+  }
+
+  public buildLevel1(detailId: number) {
+    this.resetCluster();
+    this.setupClick();
+
+    this.level = 1;
 
     const clusterMap = {};
     let emptyCluster = 0;
@@ -392,14 +459,9 @@ class ClusterVis extends Vis {
         radius = this.width;
     }
     radius = radius / 2 - 70;
-    let rScaleMax = 0;
 
     this.paintNodes.forEach((node) => {
       if (node[6][this.clusterId][0].toString() === detailId.toString()) {
-        if (node[13][this.clusterId][detailId][0] > rScaleMax) {
-          rScaleMax = node[13][this.clusterId][detailId][0];
-        }
-
         if (node[14] !== undefined && node[14] !== null) {
           const img = document.createElement("img");
           img.onerror = (event: any) => {
@@ -444,21 +506,15 @@ class ClusterVis extends Vis {
       }
     });
 
-    console.log(this.paintNodes, this.paintEdges);
-
     const clusterEdgeMap = {};
     this.paintEdges.forEach((edge) => {
       const sourceCluster = this.paintNodes[edge[0]][6][this.clusterId][0];
       const targetCluster = this.paintNodes[edge[1]][6][this.clusterId][0];
 
-      // The radi in this vis are also taken from the wrong numbers !!!!
-      // TODO: The numbers in the cluster links are likely calculated including the proxies,
-      // turn into array one number for proxie one for not!!!
-
       if (sourceCluster.toString() === detailId.toString() &&
           targetCluster.toString() === detailId.toString()) {
 
-        if (edge[2] >= 1) {
+        if (edge[2] >= 2) {
           this.graph.links.push({
             source: edge[0],
             target: edge[1],
@@ -483,7 +539,7 @@ class ClusterVis extends Vis {
         const foreignMappedIndex = clusterMap[this.paintNodes[foreignId][6][this.clusterId][0]];
         const edgeIndex = `${nodeId}-${foreignMappedIndex}`;
 
-        if (edge[2] >= 1) {
+        if (edge[2] >= 2) {
           if (!(edgeIndex in clusterEdgeMap)) {
               clusterEdgeMap[edgeIndex] = 1;
               this.graph.links.push({
@@ -507,44 +563,94 @@ class ClusterVis extends Vis {
       }
     });
 
-    const simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id((d) => d[0]))
-      .force("charge", d3.forceManyBody().strength(-250))
-      .force("collide", d3.forceCollide().radius((d) => d.r + 20).iterations(2))
-      .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
-
-    const rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain([1, rScaleMax]);
-
-    this.graph.nodes.forEach((node) => {
-      let r = 20;
-      if (13 in node) {
-        r = rScale(node[13][this.clusterId][detailId][0]);
+    this.setupSimulation((d) => {
+      if (13 in d) {
+        return d[13][this.clusterId][detailId][0];
       }
-      node.r = r;
+      return this.graph.nodes.length;
+    });
+  }
+
+  public buildLevel2(data: any) {
+    this.resetCluster();
+    this.setupClick();
+
+    this.level = 2;
+
+    this.paintEdges.forEach((edge) => {
+      if (edge[0] === data[0] || edge[1] === data[0]) {
+        [edge[0], edge[1]].forEach((nodeId) => {
+          if (!(nodeId in this.graph.nodeMap)) {
+            if (this.paintNodes[nodeId][14] !== undefined && this.paintNodes[nodeId][14] !== null) {
+              const img = document.createElement("img");
+              img.onerror = (event: any) => {
+                event.path[0].src = "../assets/images/twitter_default_profile_normal.png";
+              };
+              img.onload = (event: any) => {
+                this.paintNodes[nodeId].imageLoad = true;
+              };
+              img.width = this.imageSize;
+              img.height = this.imageSize;
+              this.paintNodes[nodeId].imageLoad = false;
+              this.paintNodes[nodeId].image = img;
+              img.src = this.paintNodes[nodeId][14];
+            }
+            this.paintNodes[nodeId].rUserCount = 0;
+            this.paintNodes[nodeId].isCentral = false;
+            if (nodeId === data[0]) {
+              this.paintNodes[nodeId].isCentral = true;
+            }
+            this.graph.nodes.push(this.paintNodes[nodeId]);
+            this.graph.nodeMap[nodeId] = this.graph.nodes.length - 1;
+          }
+        });
+      }
     });
 
-    const ticked = () => {
-      this.paint();
-    };
+    this.paintEdges.forEach((edge) => {
+      if (edge[0] in this.graph.nodeMap && edge[1] in this.graph.nodeMap) {
+        if (edge[2] >= 2) {
+          this.graph.links.push({
+            source: edge[0],
+            target: edge[1],
+          });
+          [edge[0], edge[1]].forEach((nodeId) => {
+            this.graph.nodes[this.graph.nodeMap[nodeId]].rUserCount += 1;
+          });
+        } else {
+          this.graph.proxieLinks.push({
+            source: this.graph.nodeMap[edge[0]],
+            target: this.graph.nodeMap[edge[1]],
+          });
+        }
+      }
+    });
 
-    simulation
-      .nodes(this.graph.nodes)
-      .on("tick", ticked);
-
-    simulation.force("link")
-      .links(this.graph.links);
+    this.setupSimulation((d) => d.rUserCount);
   }
 
   // TODO: Add debouncer
   public paint() {
-    if (this.level === 1) {
+    if (this.level >= 1) {
       this.ctx.save();
       this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
       this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
       this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
 
-      if (this.showEdges) {
-        this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
+      this.ctx.strokeStyle = "rgba(0,0,0,0.2)";
+      if (this.showUserEdges) {
+        this.graph.userLinks.forEach((link) => {
+          this.positionLink(link, true);
+        });
+        if (this.showProxies) {
+          this.graph.userProxyLinks.forEach((link) => {
+            this.positionLink({
+              source: this.graph.nodes[link.source],
+              target: this.graph.nodes[link.target],
+            }, true);
+          });
+        }
+      } else if (this.showEdges) {
         this.graph.links.forEach((link) => {
           this.positionLink(link, true);
         });
@@ -562,11 +668,20 @@ class ClusterVis extends Vis {
         this.ctx.fillStyle = "#000000";
         if ("image" in node && node.imageLoad && node.image.complete) {
 
+          let extraRadius = 1;
+          if (this.level === 2) {
+            extraRadius = 2;
+            this.ctx.fillStyle = this.paintCluster[this.clusterId].clusters[node[6][this.clusterId][0]].color;
+            if (node.isCentral) {
+              extraRadius = 4;
+            }
+          }
+
           this.ctx.beginPath();
           this.ctx.arc(
             node.x * 2,
             node.y * 2,
-            node.r * 2 + 1,
+            node.r * 2 + extraRadius,
             0,
             2 * Math.PI,
           );
@@ -609,8 +724,6 @@ class ClusterVis extends Vis {
         }
       });
       this.ctx.restore();
-    } else if (this.level === 2) {
-      // Draw an individual user's network
     }
   }
 

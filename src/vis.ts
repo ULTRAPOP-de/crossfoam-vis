@@ -80,7 +80,18 @@ class Vis {
     // destroy function
   }
 
-  public tooltip(data: any, _x: number, _y: number, color: string, actionLinks: Array<{label: string, href: string}>) {
+  public tooltip(
+    data: any,
+    _x: number,
+    _y: number,
+    color: string,
+    actionLinks: Array<{
+      callback?: (d: any) => void | undefined,
+      href?: string | undefined,
+      label: string,
+    }>,
+  ) {
+
     this.container.selectAll("#tooltip").remove();
 
     const x = _x;
@@ -136,11 +147,19 @@ class Vis {
       .html(((data[3] !== 0 || data[2] !== 0) ? `Friends:${formatNumber(data[3], browser.i18n.getUILanguage())} | Followers:${formatNumber(data[2], browser.i18n.getUILanguage())} | ` : "") + `Connections:${formatNumber(data[5], browser.i18n.getUILanguage())}`);
 
     if (actionLinks && actionLinks.length > 0) {
-      contentHolder.append("p")
-        .attr("id", "tooltip--actionLinks")
-        .selectAll("span").data(actionLinks).enter().append("a")
-          .html((d) => d.label)
-          .attr("href", (d) => d.href);
+      const actionLinkP = contentHolder.append("p")
+        .attr("id", "tooltip--actionLinks");
+
+      actionLinks.forEach((actionLink) => {
+        const actionLinkA = actionLinkP.append("a")
+          .datum(data)
+          .html(actionLink.label);
+        if (actionLink.href !== undefined) {
+          actionLinkA.attr("href", actionLink.href);
+        } else if (actionLink.callback !== undefined) {
+          actionLinkA.on("click", actionLink.callback);
+        }
+      });
     }
 
     if (x < this.width / 2) {

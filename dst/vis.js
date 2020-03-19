@@ -107,11 +107,19 @@ var Vis = /** @class */ (function () {
             .attr("class", "tooltip--bottomLine")
             .html(((data[3] !== 0 || data[2] !== 0) ? "Friends:" + ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " | Followers:" + ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | " : "") + ("Connections:" + ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage())));
         if (actionLinks && actionLinks.length > 0) {
-            contentHolder.append("p")
-                .attr("id", "tooltip--actionLinks")
-                .selectAll("span").data(actionLinks).enter().append("a")
-                .html(function (d) { return d.label; })
-                .attr("href", function (d) { return d.href; });
+            var actionLinkP_1 = contentHolder.append("p")
+                .attr("id", "tooltip--actionLinks");
+            actionLinks.forEach(function (actionLink) {
+                var actionLinkA = actionLinkP_1.append("a")
+                    .datum(data)
+                    .html(actionLink.label);
+                if (actionLink.href !== undefined) {
+                    actionLinkA.attr("href", actionLink.href);
+                }
+                else if (actionLink.callback !== undefined) {
+                    actionLinkA.on("click", actionLink.callback);
+                }
+            });
         }
         if (x < this.width / 2) {
             wrapper
