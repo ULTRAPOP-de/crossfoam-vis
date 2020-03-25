@@ -11,6 +11,7 @@ class Vis {
   public height: number;
   public hqScale: number;
 
+  // TODO: Remove those
   public app: any = null;
   public glContainer: any = null;
   public glContainerArcs: any = null;
@@ -34,6 +35,8 @@ class Vis {
 
   public helpData = [];
 
+  public showIxTooltip = true;
+
   get cluster() {
     return this.clusterId;
   }
@@ -48,20 +51,26 @@ class Vis {
 
     d3.select("#visHelp")
       .on("click", () => {
-        // if (this.app || ("app" in this)) {
-        //   let image = this.app.renderer.plugins.extract.image(this.glContainer);
-        //   document.body.appendChild(image);
-        //   if (this.glContainerArcs !== null) {
-        //     image = this.app.renderer.plugins.extract.image(this.glContainerArcs);
-        //     document.body.appendChild(image);
-        //     image = this.app.renderer.plugins.extract.image(this.glContainerLines);
-        //     document.body.appendChild(image);
-        //   }
-        // }
         this.help();
       });
 
+    this.asyncGetIxTooltip();
+
     this.resize(false);
+  }
+
+  public asyncGetIxTooltip = async (): Promise<boolean> => {
+    const r = await cfData.get(`ixTooltip--${this.visType}`, false)
+      .then((alreadyShown) => {
+        if (!alreadyShown) {
+          cfData.set(`ixTooltip--${this.visType}`, true);
+        } else {
+          this.showIxTooltip = false;
+        }
+        return this.showIxTooltip;
+      });
+
+    return r;
   }
 
   public init() {
@@ -122,11 +131,11 @@ class Vis {
       .attr("id", "tooltip--contentHolder");
 
     const url = "https://www.twitter.com/" +
-      ((Number.isInteger(parseInt(data[1], 10))) ? data[1] : ("i/user/" + data[1]));
+      ((Number.isInteger(parseInt(data[1], 10))) ? ("i/user/" + data[1]) : data[1]);
 
     contentHolder.append("span")
       .attr("class", "tooltip--skyLine")
-      .html((data[4]) ? "Friend of a friend" : "Direct friend");
+      .html((data[4]) ? browser.i18n.getMessage("visTooltipFriendOfFriend") : browser.i18n.getMessage("visTooltipDirectFriend"));
 
     const link = contentHolder.append("div")
       .attr("class", "tooltip--link")
@@ -140,11 +149,11 @@ class Vis {
       .attr("src", data[14]);
 
     link.append("span")
-      .html((data[15] === null) ? "Sorry, we have the real username of this person." : data[15]);
+      .html((data[15] === null) ? "Sorry, we do not have the real username of this person." : data[15]);
 
     contentHolder.append("span")
       .attr("class", "tooltip--bottomLine")
-      .html(((data[3] !== 0 || data[2] !== 0) ? `Friends:${formatNumber(data[3], browser.i18n.getUILanguage())} | Followers:${formatNumber(data[2], browser.i18n.getUILanguage())} | ` : "") + `Connections:${formatNumber(data[5], browser.i18n.getUILanguage())}`);
+      .html(((data[3] !== 0 || data[2] !== 0) ? `${browser.i18n.getMessage("friends")}:${formatNumber(data[3], browser.i18n.getUILanguage())} | ${browser.i18n.getMessage("follower")}:${formatNumber(data[2], browser.i18n.getUILanguage())} | ` : "") + `${browser.i18n.getMessage("connections")}:${formatNumber(data[5], browser.i18n.getUILanguage())}`);
 
     if (actionLinks && actionLinks.length > 0) {
       const actionLinkP = contentHolder.append("p")
@@ -207,6 +216,20 @@ class Vis {
       .style("stroke-width", 2)
       .attr("d", `M${linkPath.x1},${linkPath.y1}L${linkPath.x2},${linkPath.y2}`);
 
+  }
+
+  public ixTooltip(x: number, y: number): () => void {
+    this.container.selectAll("#ixTooltip").remove();
+    this.container.append("div")
+      .attr("id", "ixTooltip")
+      .style("left", `${x}px`)
+      .style("top", `${y}px`)
+      .append("img")
+        .attr("src", "./assets/images/vis--overview--interaction-pointer@2x.png");
+
+    return () => {
+      d3.selectAll("#ixTooltip").remove();
+    };
   }
 
   public help() {
