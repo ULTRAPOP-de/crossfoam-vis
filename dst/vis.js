@@ -44,11 +44,6 @@ var Vis = /** @class */ (function () {
     function Vis() {
         var _this = this;
         this.visType = null;
-        // TODO: Remove those
-        this.app = null;
-        this.glContainer = null;
-        this.glContainerArcs = null;
-        this.glContainerLines = null;
         this.canvasTransform = {
             k: 1,
             x: 0,
@@ -61,20 +56,27 @@ var Vis = /** @class */ (function () {
         this.destroyed = false;
         this.helpData = [];
         this.showIxTooltip = true;
-        this.asyncGetIxTooltip = function () { return __awaiter(_this, void 0, void 0, function () {
+        this.showIxMessage = true;
+        this.asyncGetIxState = function () { return __awaiter(_this, void 0, void 0, function () {
             var r;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, cfData.get("ixTooltip--" + this.visType, false)
+                    case 0: return [4 /*yield*/, cfData.get("ixTooltip--" + this.visType, "false")
                             .then(function (alreadyShown) {
-                            if (!alreadyShown) {
-                                cfData.set("ixTooltip--" + _this.visType, true);
-                            }
-                            else {
+                            if (alreadyShown === "true") {
                                 _this.showIxTooltip = false;
+                                d3.selectAll("#ixTooltip").remove();
                             }
-                            return _this.showIxTooltip;
+                            return cfData.get("ixMessage--" + _this.visType, "false");
+                        })
+                            .then(function (alreadyShown) {
+                            console.log(alreadyShown);
+                            if (alreadyShown === "true") {
+                                _this.showIxMessage = false;
+                                d3.selectAll("#ixMessage").remove();
+                            }
+                            return "true";
                         })];
                     case 1:
                         r = _a.sent();
@@ -87,7 +89,6 @@ var Vis = /** @class */ (function () {
             .on("click", function () {
             _this.help();
         });
-        this.asyncGetIxTooltip();
         this.resize(false);
     }
     Object.defineProperty(Vis.prototype, "cluster", {
@@ -215,10 +216,26 @@ var Vis = /** @class */ (function () {
             .style("left", x + "px")
             .style("top", y + "px")
             .append("img")
-            .attr("src", "./assets/images/vis--overview--interaction-pointer@2x.png");
-        return function () {
-            d3.selectAll("#ixTooltip").remove();
-        };
+            .attr("src", "../assets/images/vis--overview--interaction-pointer@2x.png");
+    };
+    Vis.prototype.ixTooltipHide = function () {
+        d3.selectAll("#ixTooltip").remove();
+        this.showIxTooltip = false;
+        cfData.set("ixTooltip--" + this.visType, "true");
+    };
+    Vis.prototype.ixMessage = function (text) {
+        var _this = this;
+        this.container.selectAll("#ixMessage").remove();
+        var message = this.container.append("div")
+            .attr("id", "ixMessage")
+            .html("<a><img src=\"../assets/images/vis--closeButton@2x.png\" /></a><br /><p>" + text + "</p>")
+            .on("click", function () {
+            d3.selectAll("#ixMessage").remove();
+            _this.showIxMessage = false;
+            cfData.set("ixMessage--" + _this.visType, "true");
+        });
+        var size = message.node().getBoundingClientRect();
+        message.style("top", (this.height / 2 - size.height / 2) + "px");
     };
     Vis.prototype.help = function () {
         var _this = this;

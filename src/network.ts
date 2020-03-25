@@ -24,7 +24,6 @@ class NetworkVis extends Vis {
   public destroy() {
     this.destroyed = true;
     this.container.selectAll("#tooltip").remove();
-    this.app.destroy(true, true);
   }
 
   public zoom(_this) {

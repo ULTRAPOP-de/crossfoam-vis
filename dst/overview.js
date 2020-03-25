@@ -28,7 +28,7 @@ var vis_1 = require("./vis");
 var OverviewVis = /** @class */ (function (_super) {
     __extends(OverviewVis, _super);
     function OverviewVis() {
-        var _this_1 = _super !== null && _super.apply(this, arguments) || this;
+        var _this_1 = _super.call(this) || this;
         _this_1.visType = "overview";
         _this_1.glNodes = [];
         _this_1.clickNodes = [];
@@ -50,6 +50,7 @@ var OverviewVis = /** @class */ (function (_super) {
         _this_1.handleResize = utils_1.debounce(function () {
             _this_1.resize(true);
         }, 200, true);
+        _this_1.asyncGetIxState();
         return _this_1;
     }
     OverviewVis.prototype.destroyTooltip = function () {
@@ -188,7 +189,6 @@ var OverviewVis = /** @class */ (function (_super) {
             .attr("id", "overview-navigation")
             .append("svg");
         this.navData = [
-            // TODO: move to dictionary
             [data.nodes.length, "<strong>" + browser.i18n.getMessage("friends") + "</strong> " + ui_helpers_1.formatNumber(data.nodes.length, browser.i18n.getUILanguage())],
             [data.proxies.length, "<strong>" + browser.i18n.getMessage("sharedFiendsOfFriends") + "</strong> " + ui_helpers_1.formatNumber(data.proxies.length, browser.i18n.getUILanguage())],
             [tempLeafs.length, "<strong>" + browser.i18n.getMessage("otherFriends") + "</strong> " + ui_helpers_1.formatNumber(tempLeafs.length, browser.i18n.getUILanguage())],
@@ -252,6 +252,7 @@ var OverviewVis = /** @class */ (function (_super) {
             _this_1.lineInterpolation = d3.interpolate(_this_1.lineTarget, _this_1.navDist * i + d[3] + d[2] - 5);
             _this_1.time = 0;
             _this_1.update(false);
+            _this_1.ixTooltipHide();
         });
         this.regl = REGL(document.getElementById("overview-regl-canvas"));
         window.onbeforeunload = function () {
@@ -319,6 +320,12 @@ var OverviewVis = /** @class */ (function (_super) {
         var _this_1 = this;
         this.navDist = (this.height * 0.5 - 10 - this.navData.reduce(function (a, b) { return a + b[2] * 2; }, 0)) / 2;
         this.navPoints.attr("transform", function (d, i) { return "translate(110, " + (_this_1.navDist * i + d[3] + d[2] + 5) + ")"; });
+        if (this.showIxTooltip) {
+            this.ixTooltip(this.width - 50, this.height / 2 + this.navDist * 1.5);
+        }
+        if (this.showIxMessage) {
+            this.ixMessage(browser.i18n.getMessage("visOverviewIntro"));
+        }
         this.navLine.attr("y2", this.navDist * 2 +
             this.navData[this.navData.length - 1][3] +
             this.navData[this.navData.length - 1][2]);

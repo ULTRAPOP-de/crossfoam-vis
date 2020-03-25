@@ -11,12 +11,6 @@ class Vis {
   public height: number;
   public hqScale: number;
 
-  // TODO: Remove those
-  public app: any = null;
-  public glContainer: any = null;
-  public glContainerArcs: any = null;
-  public glContainerLines: any = null;
-
   public canvasTransform = {
     k: 1,
     x: 0,
@@ -36,6 +30,7 @@ class Vis {
   public helpData = [];
 
   public showIxTooltip = true;
+  public showIxMessage = true;
 
   get cluster() {
     return this.clusterId;
@@ -54,20 +49,25 @@ class Vis {
         this.help();
       });
 
-    this.asyncGetIxTooltip();
-
     this.resize(false);
   }
 
-  public asyncGetIxTooltip = async (): Promise<boolean> => {
-    const r = await cfData.get(`ixTooltip--${this.visType}`, false)
+  public asyncGetIxState = async (): Promise<boolean> => {
+    const r = await cfData.get(`ixTooltip--${this.visType}`, "false")
       .then((alreadyShown) => {
-        if (!alreadyShown) {
-          cfData.set(`ixTooltip--${this.visType}`, true);
-        } else {
+        if (alreadyShown === "true") {
           this.showIxTooltip = false;
+          d3.selectAll("#ixTooltip").remove();
         }
-        return this.showIxTooltip;
+        return cfData.get(`ixMessage--${this.visType}`, "false");
+      })
+      .then((alreadyShown) => {
+        console.log(alreadyShown);
+        if (alreadyShown === "true") {
+          this.showIxMessage = false;
+          d3.selectAll("#ixMessage").remove();
+        }
+        return "true";
       });
 
     return r;
@@ -218,18 +218,34 @@ class Vis {
 
   }
 
-  public ixTooltip(x: number, y: number): () => void {
+  public ixTooltip(x: number, y: number) {
     this.container.selectAll("#ixTooltip").remove();
     this.container.append("div")
       .attr("id", "ixTooltip")
       .style("left", `${x}px`)
       .style("top", `${y}px`)
       .append("img")
-        .attr("src", "./assets/images/vis--overview--interaction-pointer@2x.png");
+        .attr("src", "../assets/images/vis--overview--interaction-pointer@2x.png");
+  }
 
-    return () => {
-      d3.selectAll("#ixTooltip").remove();
-    };
+  public ixTooltipHide() {
+    d3.selectAll("#ixTooltip").remove();
+    this.showIxTooltip = false;
+    cfData.set(`ixTooltip--${this.visType}`, "true");
+  }
+
+  public ixMessage(text: string) {
+    this.container.selectAll("#ixMessage").remove();
+    const message = this.container.append("div")
+      .attr("id", "ixMessage")
+      .html(`<a><img src="../assets/images/vis--closeButton@2x.png" /></a><br /><p>${text}</p>`)
+      .on("click", () => {
+        d3.selectAll("#ixMessage").remove();
+        this.showIxMessage = false;
+        cfData.set(`ixMessage--${this.visType}`, "true");
+      });
+    const size = message.node().getBoundingClientRect();
+    message.style("top", (this.height / 2 - size.height / 2) + "px");
   }
 
   public help() {

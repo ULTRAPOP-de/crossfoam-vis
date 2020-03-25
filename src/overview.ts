@@ -41,6 +41,11 @@ class OverviewVis extends Vis {
     this.resize(true);
   }, 200, true);
 
+  constructor() {
+    super();
+    this.asyncGetIxState();
+  }
+
   public destroyTooltip() {
     const tooltip = this.container.selectAll("#tooltip");
     if (tooltip.size() > 0) {
@@ -221,7 +226,6 @@ class OverviewVis extends Vis {
       .append("svg");
 
     this.navData = [
-      // TODO: move to dictionary
       [data.nodes.length, `<strong>${browser.i18n.getMessage("friends")}</strong> ${formatNumber(data.nodes.length, browser.i18n.getUILanguage())}`],
       [data.proxies.length, `<strong>${browser.i18n.getMessage("sharedFiendsOfFriends")}</strong> ${formatNumber(data.proxies.length, browser.i18n.getUILanguage())}`],
       [tempLeafs.length, `<strong>${browser.i18n.getMessage("otherFriends")}</strong> ${formatNumber(tempLeafs.length, browser.i18n.getUILanguage())}`],
@@ -298,6 +302,7 @@ class OverviewVis extends Vis {
       this.lineInterpolation = d3.interpolate(this.lineTarget, this.navDist * i + d[3] + d[2] - 5);
       this.time = 0;
       this.update(false);
+      this.ixTooltipHide();
     });
 
     this.regl = REGL(document.getElementById("overview-regl-canvas"));
@@ -423,6 +428,14 @@ class OverviewVis extends Vis {
     this.navDist = (this.height * 0.5 - 10 - this.navData.reduce((a, b) => a + b[2] * 2, 0)) / 2;
     this.navPoints.attr("transform", (d, i) => `translate(110, ${this.navDist * i + d[3] + d[2] + 5})`);
 
+    if (this.showIxTooltip) {
+      this.ixTooltip(this.width - 50, this.height / 2 + this.navDist * 1.5);
+    }
+
+    if (this.showIxMessage) {
+      this.ixMessage(browser.i18n.getMessage("visOverviewIntro"));
+    }
+
     this.navLine.attr("y2", this.navDist * 2 +
       this.navData[this.navData.length - 1][3] +
       this.navData[this.navData.length - 1][2]);
@@ -454,7 +467,6 @@ class OverviewVis extends Vis {
     this.regl.poll();
     this.glAnimate();
   }
-
 }
 
 export { OverviewVis };

@@ -33,7 +33,6 @@ var NetworkVis = /** @class */ (function (_super) {
     NetworkVis.prototype.destroy = function () {
         this.destroyed = true;
         this.container.selectAll("#tooltip").remove();
-        this.app.destroy(true, true);
     };
     NetworkVis.prototype.zoom = function (_this) {
         this.container.selectAll("#tooltip").remove();
