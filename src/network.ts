@@ -17,9 +17,24 @@ class NetworkVis extends Vis {
   public frameLoop: any = false;
   public visNav;
 
+  public helpData = [
+    browser.i18n.getMessage("helpNetwork_1"),
+    browser.i18n.getMessage("helpNetwork_2"),
+    browser.i18n.getMessage("helpNetwork_3"),
+    browser.i18n.getMessage("helpNetwork_4"),
+    browser.i18n.getMessage("helpNetwork_5"),
+    browser.i18n.getMessage("helpNetwork_6"),
+    browser.i18n.getMessage("helpNetwork_7"),
+  ];
+
   public handleResize = debounce(() => {
     this.resize(true);
   }, 200, true);
+
+  constructor() {
+    super();
+    this.asyncGetIxState();
+  }
 
   public destroy() {
     this.destroyed = true;
@@ -84,9 +99,9 @@ class NetworkVis extends Vis {
       // the assigned cluster color should be in the center
       if (node[6][this.clusterId].length > 0 &&
           node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-        let sumSize = assignLinks(node, node[6][this.clusterId], 0);
+        let sumSize = assignLinks(node, node[6][this.clusterId][0], 0);
         Object.keys(node[13][this.clusterId]).forEach((clusterKey) => {
-          if (clusterKey !== node[6][this.clusterId][0]) {
+          if (parseInt(clusterKey, 10) !== node[6][this.clusterId][0]) {
             sumSize = assignLinks(node, clusterKey, sumSize);
           }
         });
@@ -98,7 +113,12 @@ class NetworkVis extends Vis {
       }
     });
 
-    this.paintEdges = data.edges.filter((d) => (d[3] < 2) ? true : false);
+    this.paintEdges = [];
+    data.edges.forEach((edge) => {
+      if (edge[2] >= 2) {
+        this.paintEdges.push([edge[0], edge[1]]);
+      }
+    });
 
     this.resize(false);
 
@@ -174,6 +194,7 @@ class NetworkVis extends Vis {
       .html(browser.i18n.getMessage("visNetworkToggleOff"));
 
     this.visNav.on("click", () => {
+      this.ixTooltipHide();
       if (this.pointMode === "single") {
         this.pointMode = "cluster";
         this.visNav.classed("active", true);
@@ -356,11 +377,10 @@ class NetworkVis extends Vis {
           srcRGB: "src alpha",
         },
       },
-      count: this.paintEdges.length,
       depth: {
         enable: false,
       },
-      elements: this.paintEdges.map((edge) => [edge[0], edge[1]]),
+      elements: this.paintEdges,
       frag: `
         precision mediump float;
         uniform vec4 color;
@@ -445,6 +465,14 @@ class NetworkVis extends Vis {
   }
 
   public update(data: any) {
+    if (this.showIxTooltip) {
+      this.ixTooltip(this.width - 70, 105);
+    }
+
+    if (this.showIxMessage) {
+      this.ixMessage(browser.i18n.getMessage("visNetworkIntro"));
+    }
+
     this.container.select("#overview-regl-canvas")
       .style("width", this.width + "px")
       .style("height", this.height + "px");

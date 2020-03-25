@@ -71,7 +71,6 @@ var Vis = /** @class */ (function () {
                             return cfData.get("ixMessage--" + _this.visType, "false");
                         })
                             .then(function (alreadyShown) {
-                            console.log(alreadyShown);
                             if (alreadyShown === "true") {
                                 _this.showIxMessage = false;
                                 d3.selectAll("#ixMessage").remove();
@@ -151,12 +150,24 @@ var Vis = /** @class */ (function () {
             .on("error", function (d, i, a) {
             d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
         })
-            .attr("src", data[14]);
+            .attr("src", (data.length < 15) ? data[10] : data[14]);
+        var name;
+        if (data.length < 15) {
+            name = (data[11] === null) ? browser.i18n.getMessage("nameNotAvailable") : data[11];
+        }
+        else {
+            name = (data[15] === null) ? browser.i18n.getMessage("nameNotAvailable") : data[15];
+        }
         link.append("span")
-            .html((data[15] === null) ? "Sorry, we do not have the real username of this person." : data[15]);
+            .html(name);
+        var bottomLine;
+        if (data[3] !== 0 || data[2] !== 0) {
+            bottomLine = browser.i18n.getMessage("friends") + ":" + ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " |         " + browser.i18n.getMessage("followers") + ":" + ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | ";
+        }
+        bottomLine += browser.i18n.getMessage("connections") + ":" + ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage());
         contentHolder.append("span")
             .attr("class", "tooltip--bottomLine")
-            .html(((data[3] !== 0 || data[2] !== 0) ? browser.i18n.getMessage("friends") + ":" + ui_helpers_1.formatNumber(data[3], browser.i18n.getUILanguage()) + " | " + browser.i18n.getMessage("follower") + ":" + ui_helpers_1.formatNumber(data[2], browser.i18n.getUILanguage()) + " | " : "") + (browser.i18n.getMessage("connections") + ":" + ui_helpers_1.formatNumber(data[5], browser.i18n.getUILanguage())));
+            .html(bottomLine);
         if (actionLinks && actionLinks.length > 0) {
             var actionLinkP_1 = contentHolder.append("p")
                 .attr("id", "tooltip--actionLinks");

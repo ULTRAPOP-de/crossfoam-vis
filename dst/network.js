@@ -20,14 +20,24 @@ var vis_1 = require("./vis");
 var NetworkVis = /** @class */ (function (_super) {
     __extends(NetworkVis, _super);
     function NetworkVis() {
-        var _this_1 = _super !== null && _super.apply(this, arguments) || this;
+        var _this_1 = _super.call(this) || this;
         _this_1.visType = "network";
         _this_1.pointMode = "single";
         _this_1.time = 0;
         _this_1.frameLoop = false;
+        _this_1.helpData = [
+            browser.i18n.getMessage("helpNetwork_1"),
+            browser.i18n.getMessage("helpNetwork_2"),
+            browser.i18n.getMessage("helpNetwork_3"),
+            browser.i18n.getMessage("helpNetwork_4"),
+            browser.i18n.getMessage("helpNetwork_5"),
+            browser.i18n.getMessage("helpNetwork_6"),
+            browser.i18n.getMessage("helpNetwork_7"),
+        ];
         _this_1.handleResize = utils_1.debounce(function () {
             _this_1.resize(true);
         }, 200, true);
+        _this_1.asyncGetIxState();
         return _this_1;
     }
     NetworkVis.prototype.destroy = function () {
@@ -80,9 +90,9 @@ var NetworkVis = /** @class */ (function (_super) {
             // the assigned cluster color should be in the center
             if (node[6][_this_1.clusterId].length > 0 &&
                 node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                var sumSize_1 = assignLinks(node, node[6][_this_1.clusterId], 0);
+                var sumSize_1 = assignLinks(node, node[6][_this_1.clusterId][0], 0);
                 Object.keys(node[13][_this_1.clusterId]).forEach(function (clusterKey) {
-                    if (clusterKey !== node[6][_this_1.clusterId][0]) {
+                    if (parseInt(clusterKey, 10) !== node[6][_this_1.clusterId][0]) {
                         sumSize_1 = assignLinks(node, clusterKey, sumSize_1);
                     }
                 });
@@ -94,7 +104,12 @@ var NetworkVis = /** @class */ (function (_super) {
                 pointMultiSizes.push(node[10] * 4);
             }
         });
-        this.paintEdges = data.edges.filter(function (d) { return (d[3] < 2) ? true : false; });
+        this.paintEdges = [];
+        data.edges.forEach(function (edge) {
+            if (edge[2] >= 2) {
+                _this_1.paintEdges.push([edge[0], edge[1]]);
+            }
+        });
         this.resize(false);
         d3.select(window).on("resize", function () {
             _this_1.handleResize();
@@ -146,6 +161,7 @@ var NetworkVis = /** @class */ (function (_super) {
             .attr("text-anchor", "end")
             .html(browser.i18n.getMessage("visNetworkToggleOff"));
         this.visNav.on("click", function () {
+            _this_1.ixTooltipHide();
             if (_this_1.pointMode === "single") {
                 _this_1.pointMode = "cluster";
                 _this_1.visNav.classed("active", true);
@@ -220,11 +236,10 @@ var NetworkVis = /** @class */ (function (_super) {
                     srcRGB: "src alpha",
                 },
             },
-            count: this.paintEdges.length,
             depth: {
                 enable: false,
             },
-            elements: this.paintEdges.map(function (edge) { return [edge[0], edge[1]]; }),
+            elements: this.paintEdges,
             frag: "\n        precision mediump float;\n        uniform vec4 color;\n        void main() {\n          gl_FragColor = color;\n        }",
             lineWidth: 1,
             primitive: "line",
@@ -280,6 +295,12 @@ var NetworkVis = /** @class */ (function (_super) {
         }
     };
     NetworkVis.prototype.update = function (data) {
+        if (this.showIxTooltip) {
+            this.ixTooltip(this.width - 70, 105);
+        }
+        if (this.showIxMessage) {
+            this.ixMessage(browser.i18n.getMessage("visNetworkIntro"));
+        }
         this.container.select("#overview-regl-canvas")
             .style("width", this.width + "px")
             .style("height", this.height + "px");
