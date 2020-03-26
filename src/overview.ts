@@ -206,6 +206,9 @@ class OverviewVis extends Vis {
     const pointPositions = [];
     const pointSizes = [];
 
+    let pointSizeMin = Number.MAX_VALUE;
+    let pointSizeMax = 0;
+
     this.paintNodes.forEach((node) => {
       let color = [85 / 255, 85 / 255, 85 / 255];
 
@@ -219,7 +222,16 @@ class OverviewVis extends Vis {
       pointPositions.push([node[8], node[9]]);
       pointSizes.push(node[7] * 4);
 
+      if (node[5] > pointSizeMax) {
+        pointSizeMax = node[5];
+      }
+
+      if (node[5] < pointSizeMin) {
+        pointSizeMin = node[5];
+      }
     });
+
+    // ------ VIS NAVIGATION
 
     const navigation = this.container.append("div")
       .attr("id", "overview-navigation")
@@ -304,6 +316,10 @@ class OverviewVis extends Vis {
       this.update(false);
       this.ixTooltipHide();
     });
+
+    this.circleLegend(pointSizeMin, pointSizeMax);
+
+    // ------ WebGL Object Initialization (REGL)
 
     this.regl = REGL(document.getElementById("overview-regl-canvas"));
 

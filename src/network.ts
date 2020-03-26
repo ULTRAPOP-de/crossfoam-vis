@@ -8,10 +8,14 @@ class NetworkVis extends Vis {
   public regl;
   public reglDraw;
   public reglDrawLine;
+  public reglDrawProxyLine;
   public reglDrawMultiPoint;
   public clickNodes;
   public paintNodes;
   public paintEdges;
+  public paintProxyEdges;
+  public showProxies = false;
+  public proxyToggle;
   public pointMode = "single";
   public time = 0;
   public frameLoop: any = false;
@@ -59,7 +63,18 @@ class NetworkVis extends Vis {
     const pointMultiPositions = [];
     const pointMultiSizes = [];
 
+    let pointSizeMax = 0;
+    let pointSizeMin = Number.MAX_VALUE;
+
     data.nodes.forEach((node) => {
+      if (node[5] > pointSizeMax) {
+        pointSizeMax = node[5];
+      }
+
+      if (node[5] < pointSizeMin) {
+        pointSizeMin = node[5];
+      }
+
       let color = [85 / 255, 85 / 255, 85 / 255];
 
       if (node[6][this.clusterId].length > 0 &&
@@ -98,13 +113,20 @@ class NetworkVis extends Vis {
 
       // the assigned cluster color should be in the center
       if (node[6][this.clusterId].length > 0 &&
-          node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
+          node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters &&
+          node[13][this.clusterId][node[6][this.clusterId][0]][0] > 0) {
         let sumSize = assignLinks(node, node[6][this.clusterId][0], 0);
         Object.keys(node[13][this.clusterId]).forEach((clusterKey) => {
           if (parseInt(clusterKey, 10) !== node[6][this.clusterId][0]) {
             sumSize = assignLinks(node, clusterKey, sumSize);
           }
         });
+     // } else if (node[13][this.clusterId][node[6][this.clusterId][0]][0] === 0) {
+        // This is a node that is only connected to a cluster through proxies and has no direct nodes
+        // For now we handle this as an unconnected node
+        // pointMultiColors.push([85 / 255, 85 / 255, 85 / 255]);
+        // pointMultiPositions.push([node[11] + this.width / 2, node[12] + this.height / 2]);
+        // pointMultiSizes.push(node[10] * 4);
       } else {
         // unclustered / unconnected nodes
         pointMultiColors.push([85 / 255, 85 / 255, 85 / 255]);
@@ -114,9 +136,13 @@ class NetworkVis extends Vis {
     });
 
     this.paintEdges = [];
+    this.paintProxyEdges = [];
     data.edges.forEach((edge) => {
-      if (edge[2] >= 2) {
+      if (edge[2] >= 5) {
         this.paintEdges.push([edge[0], edge[1]]);
+      } else {
+        // fix for old data sets, new ones are already integers
+        this.paintProxyEdges.push([parseInt(edge[0], 10), parseInt(edge[1], 10)]);
       }
     });
 
@@ -208,6 +234,42 @@ class NetworkVis extends Vis {
       }
       this.glAnimate();
     });
+
+    this.proxyToggle = svg.append("g")
+      .attr("id", "cluster-vis-showProxies-toggle")
+      .on("click", () => {
+        if (this.showProxies) {
+          proxyToggleG.select("text")
+            .html(browser.i18n.getMessage("visProxiesToggleOff"));
+        } else {
+          proxyToggleG.select("text")
+            .html(browser.i18n.getMessage("visProxiesToggleOn"));
+        }
+        this.showProxies = !this.showProxies;
+        this.proxyToggle.classed("active", this.showProxies);
+        this.update(false);
+      });
+
+    const proxyToggleG = this.proxyToggle.append("g");
+
+    proxyToggleG.append("image")
+      .attr("class", "cluster-vis-showProxies-normal")
+      .attr("width", 51)
+      .attr("height", 33)
+      .attr("xlink:href", "../assets/images/vis--cluster--showProxies-normal@2x.png");
+
+    proxyToggleG.append("image")
+      .attr("class", "cluster-vis-showProxies-active")
+      .attr("width", 51)
+      .attr("height", 33)
+      .attr("xlink:href", "../assets/images/vis--cluster--showProxies-active@2x.png");
+
+    proxyToggleG.append("text")
+      .attr("text-anchor", "end")
+      .attr("transform", "translate(-4, 23)")
+      .html(browser.i18n.getMessage("visProxiesToggleOff"));
+
+    this.circleLegend(pointSizeMin, pointSizeMax);
 
     this.canvasTransform = d3.zoomIdentity;
 
@@ -420,6 +482,67 @@ class NetworkVis extends Vis {
         }`,
     });
 
+    this.reglDrawProxyLine = this.regl({
+      attributes: {
+        position: pointPositions,
+      },
+      blend: {
+        color: [0, 0, 0, 0],
+        enable: true,
+        equation: {
+          alpha: "add",
+          rgb: "add",
+        },
+        func: {
+          dstAlpha: 1,
+          dstRGB: "one minus src alpha",
+          srcAlpha: 1,
+          srcRGB: "src alpha",
+        },
+      },
+      depth: {
+        enable: false,
+      },
+      elements: this.paintProxyEdges,
+      frag: `
+        precision mediump float;
+        uniform vec4 color;
+        void main() {
+          gl_FragColor = color;
+        }`,
+      lineWidth: 1,
+      primitive: "line",
+      uniforms: {
+        color: [0, 0, 0, 0.5],
+        offsetX: this.regl.prop("offsetX"),
+        offsetY: this.regl.prop("offsetY"),
+        scale: this.regl.prop("scale"),
+        stageHeight: this.regl.prop("stageHeight"),
+        stageWidth: this.regl.prop("stageWidth"),
+      },
+      vert: `
+        precision mediump float;
+        attribute vec2 position;
+        uniform float scale;
+        uniform float offsetX;
+        uniform float offsetY;
+        uniform float stageWidth;
+        uniform float stageHeight;
+        vec2 normalizeCoords(vec2 position) {
+          // read in the positions into x and y vars
+          float x = position[0] * scale + offsetX;
+          float y = position[1] * scale + offsetY;
+          return vec2(
+            2.0 * ((x / stageWidth) - 0.5),
+            // invert y to treat [0,0] as bottom left in pixel space
+            -(2.0 * ((y / stageHeight) - 0.5))
+          );
+        }
+        void main() {
+          gl_Position = vec4(normalizeCoords(position), 0.0, 1.0);
+        }`,
+    });
+
     this.time = 1;
     this.update(false);
   }
@@ -439,6 +562,16 @@ class NetworkVis extends Vis {
           stageHeight: this.height,
           stageWidth: this.width,
         });
+
+        if (this.showProxies) {
+          this.reglDrawProxyLine({
+            offsetX: this.canvasTransform.x,
+            offsetY: this.canvasTransform.y,
+            scale: this.canvasTransform.k,
+            stageHeight: this.height,
+            stageWidth: this.width,
+          });
+        }
 
         if (this.pointMode === "cluster") {
           this.reglDrawMultiPoint({
@@ -483,7 +616,8 @@ class NetworkVis extends Vis {
       .style("width", this.width + "px")
       .style("height", this.height + "px");
 
-    this.visNav.attr("transform", `translate(${this.width - 50}, 90)`);
+    this.visNav.attr("transform", `translate(${this.width - 43}, 80)`);
+    this.proxyToggle.attr("transform", `translate(${this.width - 73}, 117)`);
 
     this.regl.poll();
     this.glAnimate();

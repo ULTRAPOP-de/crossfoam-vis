@@ -220,15 +220,17 @@ class ClusterVis extends Vis {
       ];
 
       clusters.forEach((eCluster) => {
-        const eCount = this.paintCluster[this.clusterId].clusters[cluster].edges[eCluster][0];
-        if (eCount > eMax) {
-          eMax = eCount;
-        }
-        if (eCount < eMin) {
-          eMin = eCount;
-        }
-        if (cluster !== eCluster && cluster < eCluster) {
-          edgeList.push([cluster, eCluster, eCount]);
+        if (eCluster in this.paintCluster[this.clusterId].clusters[cluster].edges) {
+          const eCount = this.paintCluster[this.clusterId].clusters[cluster].edges[eCluster][0];
+          if (eCount > eMax) {
+            eMax = eCount;
+          }
+          if (eCount < eMin) {
+            eMin = eCount;
+          }
+          if (cluster !== eCluster && cluster < eCluster) {
+            edgeList.push([cluster, eCluster, eCount]);
+          }
         }
       });
     });
@@ -751,9 +753,9 @@ class ClusterVis extends Vis {
   // TODO: Move to utils
   public circlePath(x: number, y: number, r: number, direction: boolean): string {
     return `M${x},${y} \
-     m${-r}, 0 \
-     a${r},${r} 0 ${(direction) ? "0" : "1"},${(direction) ? "1" : "0"} ${r * 2},0 \
-     a${r},${r} 0 ${(direction) ? "0" : "1"},${(direction) ? "1" : "0"} ${-r * 2},0Z`;
+      m${-r}, 0 \
+      a${r},${r} 0 ${(direction) ? "0" : "1"},${(direction) ? "1" : "0"} ${r * 2},0 \
+      a${r},${r} 0 ${(direction) ? "0" : "1"},${(direction) ? "1" : "0"} ${-r * 2},0Z`;
   }
 
   public positionLink(d, draw = false): any {

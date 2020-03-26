@@ -174,6 +174,8 @@ var OverviewVis = /** @class */ (function (_super) {
         var pointColors = [];
         var pointPositions = [];
         var pointSizes = [];
+        var pointSizeMin = Number.MAX_VALUE;
+        var pointSizeMax = 0;
         this.paintNodes.forEach(function (node) {
             var color = [85 / 255, 85 / 255, 85 / 255];
             if (node[6][_this_1.clusterId].length > 0 &&
@@ -184,7 +186,14 @@ var OverviewVis = /** @class */ (function (_super) {
             pointColors.push(color);
             pointPositions.push([node[8], node[9]]);
             pointSizes.push(node[7] * 4);
+            if (node[5] > pointSizeMax) {
+                pointSizeMax = node[5];
+            }
+            if (node[5] < pointSizeMin) {
+                pointSizeMin = node[5];
+            }
         });
+        // ------ VIS NAVIGATION
         var navigation = this.container.append("div")
             .attr("id", "overview-navigation")
             .append("svg");
@@ -254,6 +263,8 @@ var OverviewVis = /** @class */ (function (_super) {
             _this_1.update(false);
             _this_1.ixTooltipHide();
         });
+        this.circleLegend(pointSizeMin, pointSizeMax);
+        // ------ WebGL Object Initialization (REGL)
         this.regl = REGL(document.getElementById("overview-regl-canvas"));
         window.onbeforeunload = function () {
             _this_1.regl.destroy();

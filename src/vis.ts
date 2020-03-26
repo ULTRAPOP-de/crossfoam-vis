@@ -263,6 +263,70 @@ class Vis {
     message.style("top", (this.height / 2 - size.height / 2) + "px");
   }
 
+  public circleLegend(min: number, max: number) {
+    // ------ LEGEND
+
+    const legendWidth = 500;
+    const legend = this.container.append("div")
+      .attr("id", "circle-legend")
+      .append("svg")
+      .attr("width", legendWidth)
+      .attr("height", 50);
+
+    // --- Cluster-Colors
+
+    const colorLegend = legend.append("g");
+    let colorLegendOffset = 10;
+    Object.keys(this.paintCluster[this.clusterId].clusters).forEach((clusterKey) => {
+      const clusterLegend = this.paintCluster[this.clusterId].clusters[clusterKey];
+      const colorLegendItem = colorLegend.append("g")
+        .attr("transform", `translate(${legendWidth - colorLegendOffset}, 45)`);
+      colorLegendItem.append("circle")
+        .attr("r", 5)
+        .style("stroke", "#ffffff")
+        .style("fill", clusterLegend.color);
+
+      colorLegendOffset += 22 + colorLegendItem.append("text")
+        .attr("text-anchor", "end")
+        .attr("dx", -8)
+        .attr("dy", 4)
+        .text(clusterLegend.name).node().getBBox().width;
+    });
+
+    // --- Circle-Sizes
+    const circleLegend = legend.append("g")
+      .attr("transform", `translate(${legendWidth},21)`);
+
+    let circleLegendOffset = 5;
+
+    circleLegendOffset += 3 + circleLegend.append("text")
+      .attr("transform", `translate(-${circleLegendOffset},0)`)
+      .attr("class", "normal")
+      .attr("text-anchor", "end")
+      .text(max)
+      .node().getBBox().width;
+
+    circleLegend.append("image")
+      .attr("transform", `translate(-${circleLegendOffset + 40},-13.5)`)
+      .attr("width", 40)
+      .attr("height", 21)
+      .attr("xlink:href", "../assets/images/vis--legend--overview--circle@2x.png");
+
+    circleLegendOffset += 43;
+
+    circleLegendOffset += 3 + circleLegend.append("text")
+      .attr("transform", `translate(-${circleLegendOffset},0)`)
+      .attr("class", "normal")
+      .attr("text-anchor", "end")
+      .text(min)
+      .node().getBBox().width;
+
+    circleLegend.append("text")
+      .attr("text-anchor", "end")
+      .attr("transform", `translate(-${circleLegendOffset},0)`)
+      .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+  }
+
   public help() {
     let helpCount = 0;
 

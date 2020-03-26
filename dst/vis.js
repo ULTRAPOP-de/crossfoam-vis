@@ -248,6 +248,59 @@ var Vis = /** @class */ (function () {
         var size = message.node().getBoundingClientRect();
         message.style("top", (this.height / 2 - size.height / 2) + "px");
     };
+    Vis.prototype.circleLegend = function (min, max) {
+        // ------ LEGEND
+        var _this = this;
+        var legendWidth = 500;
+        var legend = this.container.append("div")
+            .attr("id", "circle-legend")
+            .append("svg")
+            .attr("width", legendWidth)
+            .attr("height", 50);
+        // --- Cluster-Colors
+        var colorLegend = legend.append("g");
+        var colorLegendOffset = 10;
+        Object.keys(this.paintCluster[this.clusterId].clusters).forEach(function (clusterKey) {
+            var clusterLegend = _this.paintCluster[_this.clusterId].clusters[clusterKey];
+            var colorLegendItem = colorLegend.append("g")
+                .attr("transform", "translate(" + (legendWidth - colorLegendOffset) + ", 45)");
+            colorLegendItem.append("circle")
+                .attr("r", 5)
+                .style("stroke", "#ffffff")
+                .style("fill", clusterLegend.color);
+            colorLegendOffset += 22 + colorLegendItem.append("text")
+                .attr("text-anchor", "end")
+                .attr("dx", -8)
+                .attr("dy", 4)
+                .text(clusterLegend.name).node().getBBox().width;
+        });
+        // --- Circle-Sizes
+        var circleLegend = legend.append("g")
+            .attr("transform", "translate(" + legendWidth + ",21)");
+        var circleLegendOffset = 5;
+        circleLegendOffset += 3 + circleLegend.append("text")
+            .attr("transform", "translate(-" + circleLegendOffset + ",0)")
+            .attr("class", "normal")
+            .attr("text-anchor", "end")
+            .text(max)
+            .node().getBBox().width;
+        circleLegend.append("image")
+            .attr("transform", "translate(-" + (circleLegendOffset + 40) + ",-13.5)")
+            .attr("width", 40)
+            .attr("height", 21)
+            .attr("xlink:href", "../assets/images/vis--legend--overview--circle@2x.png");
+        circleLegendOffset += 43;
+        circleLegendOffset += 3 + circleLegend.append("text")
+            .attr("transform", "translate(-" + circleLegendOffset + ",0)")
+            .attr("class", "normal")
+            .attr("text-anchor", "end")
+            .text(min)
+            .node().getBBox().width;
+        circleLegend.append("text")
+            .attr("text-anchor", "end")
+            .attr("transform", "translate(-" + circleLegendOffset + ",0)")
+            .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+    };
     Vis.prototype.help = function () {
         var _this = this;
         var helpCount = 0;

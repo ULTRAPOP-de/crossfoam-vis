@@ -196,15 +196,17 @@ var ClusterVis = /** @class */ (function (_super) {
                 radius * Math.sin(i * theta),
             ];
             clusters.forEach(function (eCluster) {
-                var eCount = _this_1.paintCluster[_this_1.clusterId].clusters[cluster].edges[eCluster][0];
-                if (eCount > eMax) {
-                    eMax = eCount;
-                }
-                if (eCount < eMin) {
-                    eMin = eCount;
-                }
-                if (cluster !== eCluster && cluster < eCluster) {
-                    edgeList.push([cluster, eCluster, eCount]);
+                if (eCluster in _this_1.paintCluster[_this_1.clusterId].clusters[cluster].edges) {
+                    var eCount = _this_1.paintCluster[_this_1.clusterId].clusters[cluster].edges[eCluster][0];
+                    if (eCount > eMax) {
+                        eMax = eCount;
+                    }
+                    if (eCount < eMin) {
+                        eMin = eCount;
+                    }
+                    if (cluster !== eCluster && cluster < eCluster) {
+                        edgeList.push([cluster, eCluster, eCount]);
+                    }
                 }
             });
         });
@@ -645,7 +647,7 @@ var ClusterVis = /** @class */ (function (_super) {
     };
     // TODO: Move to utils
     ClusterVis.prototype.circlePath = function (x, y, r, direction) {
-        return "M" + x + "," + y + "      m" + -r + ", 0      a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + r * 2 + ",0      a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + -r * 2 + ",0Z";
+        return "M" + x + "," + y + "       m" + -r + ", 0       a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + r * 2 + ",0       a" + r + "," + r + " 0 " + ((direction) ? "0" : "1") + "," + ((direction) ? "1" : "0") + " " + -r * 2 + ",0Z";
     };
     ClusterVis.prototype.positionLink = function (d, draw) {
         if (draw === void 0) { draw = false; }
