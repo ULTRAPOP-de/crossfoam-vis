@@ -41,8 +41,8 @@ class OverviewVis extends Vis {
     this.resize(true);
   }, 200, true);
 
-  constructor() {
-    super();
+  constructor(stateManager: any) {
+    super(stateManager);
     this.asyncGetIxState();
   }
 

@@ -32,6 +32,8 @@ class Vis {
   public showIxTooltip = true;
   public showIxMessage = true;
 
+  public stateManager;
+
   get cluster() {
     return this.clusterId;
   }
@@ -41,7 +43,8 @@ class Vis {
     this.update(null);
   }
 
-  constructor() {
+  constructor(stateManager: any) {
+    this.stateManager = stateManager;
     this.container = d3.select("#visContainer");
 
     d3.select("#visHelp")
@@ -86,6 +89,10 @@ class Vis {
 
   public update(data: any) {
     // destroy function
+  }
+
+  public updateView() {
+    // called by the state manager
   }
 
   public tooltip(
@@ -263,8 +270,56 @@ class Vis {
     message.style("top", (this.height / 2 - size.height / 2) + "px");
   }
 
-  public circleLegend(min: number, max: number) {
+  public lineLegend(min: number, max: number) {
     // ------ LEGEND
+
+    d3.selectAll("#line-legend").remove();
+
+    const legendWidth = 500;
+    const legend = this.container.append("div")
+      .attr("id", "line-legend")
+      .append("svg")
+      .attr("width", legendWidth)
+      .attr("height", 25);
+
+    // --- Circle-Sizes
+    const lineLegend = legend.append("g")
+      .attr("transform", `translate(${legendWidth},21)`);
+
+    let lineLegendOffset = 5;
+
+    lineLegendOffset += 3 + lineLegend.append("text")
+      .attr("transform", `translate(-${lineLegendOffset},0)`)
+      .attr("class", "normal")
+      .attr("text-anchor", "end")
+      .text(max)
+      .node().getBBox().width;
+
+    lineLegend.append("image")
+      .attr("transform", `translate(-${lineLegendOffset + 40},-13.5)`)
+      .attr("width", 40)
+      .attr("height", 21)
+      .attr("xlink:href", "../assets/images/vis--legend--overview--line@2x.png");
+
+    lineLegendOffset += 43;
+
+    lineLegendOffset += 3 + lineLegend.append("text")
+      .attr("transform", `translate(-${lineLegendOffset},0)`)
+      .attr("class", "normal")
+      .attr("text-anchor", "end")
+      .text(min)
+      .node().getBBox().width;
+
+    lineLegend.append("text")
+      .attr("text-anchor", "end")
+      .attr("transform", `translate(-${lineLegendOffset},0)`)
+      .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+  }
+
+  public circleLegend(min: number, max: number, altText?: string) {
+    // ------ LEGEND
+
+    d3.selectAll("#circle-legend").remove();
 
     const legendWidth = 500;
     const legend = this.container.append("div")
@@ -321,10 +376,15 @@ class Vis {
       .text(min)
       .node().getBBox().width;
 
+    let labelNumOfConnections = browser.i18n.getMessage("visLegendNumberOfConnections");
+    if (altText && altText !== null) {
+      labelNumOfConnections = altText;
+    }
+
     circleLegend.append("text")
       .attr("text-anchor", "end")
       .attr("transform", `translate(-${circleLegendOffset},0)`)
-      .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+      .text(labelNumOfConnections);
   }
 
   public help() {

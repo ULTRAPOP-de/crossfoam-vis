@@ -27,8 +27,8 @@ var REGL = require("regl");
 var vis_1 = require("./vis");
 var OverviewVis = /** @class */ (function (_super) {
     __extends(OverviewVis, _super);
-    function OverviewVis() {
-        var _this_1 = _super.call(this) || this;
+    function OverviewVis(stateManager) {
+        var _this_1 = _super.call(this, stateManager) || this;
         _this_1.visType = "overview";
         _this_1.glNodes = [];
         _this_1.clickNodes = [];

@@ -19,8 +19,8 @@ var REGL = require("regl");
 var vis_1 = require("./vis");
 var NetworkVis = /** @class */ (function (_super) {
     __extends(NetworkVis, _super);
-    function NetworkVis() {
-        var _this_1 = _super.call(this) || this;
+    function NetworkVis(stateManager) {
+        var _this_1 = _super.call(this, stateManager) || this;
         _this_1.visType = "network";
         _this_1.showProxies = false;
         _this_1.pointMode = "single";

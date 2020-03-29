@@ -12,6 +12,12 @@ class ClusterVis extends Vis {
   public showProxies = false;
   public showUserEdges = false;
   public outerSvg;
+  public edgeScale;
+  public edgeProxyScale;
+  public eMin;
+  public eMax;
+  public ePMin;
+  public ePMax;
   public level = 0;
   public graph = {
     links: [],
@@ -24,7 +30,7 @@ class ClusterVis extends Vis {
   public zoomObj;
   public edgeToggle;
   public proxyToggle;
-  public simulation;
+  public simulation = null;
 
   public helpData = [
   ];
@@ -47,6 +53,20 @@ class ClusterVis extends Vis {
     }
 
     return false;
+  }
+
+  public updateView() {
+    if (!("subView" in this.stateManager.urlState)) {
+      this.stateManager.urlState.subView = "level0";
+      this.stateManager.urlState.subViewId = 0;
+      this.stateManager.update();
+    } else if (this.stateManager.urlState.subView === "level0") {
+      this.buildLevel0();
+    } else if (this.stateManager.urlState.subView === "level1") {
+      this.buildLevel1(parseInt(this.stateManager.urlState.subViewId, 10));
+    } else if (this.stateManager.urlState.subView === "level2") {
+      this.buildLevel2(parseInt(this.stateManager.urlState.subViewId, 10));
+    }
   }
 
   public build(data: any, centralNode: any) {
@@ -80,18 +100,10 @@ class ClusterVis extends Vis {
     this.edgeToggle = this.outerSvg.append("g")
       .attr("id", "cluster-vis-showEdges-toggle")
       .on("click", () => {
-        if (this.showEdges) {
-          edgeToggleG.select("text")
-            .html(browser.i18n.getMessage("visClusterToggleOff"));
-        } else {
-          edgeToggleG.select("text")
-            .html(browser.i18n.getMessage("visClusterToggleOn"));
-        }
         this.showEdges = !this.showEdges;
         if (this.showEdges) {
           this.showUserEdges = false;
         }
-        this.edgeToggle.classed("active", this.showEdges);
         this.paint();
       });
 
@@ -117,15 +129,10 @@ class ClusterVis extends Vis {
     this.proxyToggle = this.outerSvg.append("g")
       .attr("id", "cluster-vis-showProxies-toggle")
       .on("click", () => {
-        if (this.showProxies) {
-          proxyToggleG.select("text")
-            .html(browser.i18n.getMessage("visProxiesToggleOff"));
-        } else {
-          proxyToggleG.select("text")
-            .html(browser.i18n.getMessage("visProxiesToggleOn"));
-        }
         this.showProxies = !this.showProxies;
-        this.proxyToggle.classed("active", this.showProxies);
+        if (this.showProxies) {
+          this.showEdges = true;
+        }
         this.paint();
       });
 
@@ -150,13 +157,14 @@ class ClusterVis extends Vis {
 
     this.resize(true);
 
-    this.buildLevel0();
+    this.updateView();
   }
 
   public buildLevel0() {
-    this.svg.selectAll("*").remove();
-    this.edgeToggle.classed("invisible", true);
-    this.proxyToggle.classed("invisible", true);
+    this.resetCluster();
+    this.showEdges = true;
+    this.showProxies = false;
+    this.level = 0;
 
     this.outerSvg.on("click", null);
 
@@ -203,8 +211,10 @@ class ClusterVis extends Vis {
     let min = Number.MAX_VALUE;
 
     // get min and max number of edges between cluster
-    let eMax = 0;
-    let eMin = Number.MAX_VALUE;
+    this.eMax = 0;
+    this.eMin = Number.MAX_VALUE;
+    this.ePMax = 0;
+    this.ePMin = Number.MAX_VALUE;
     const edgeList = [];
 
     clusters.forEach((cluster, i) => {
@@ -220,22 +230,34 @@ class ClusterVis extends Vis {
       ];
 
       clusters.forEach((eCluster) => {
-        if (eCluster in this.paintCluster[this.clusterId].clusters[cluster].edges) {
+        if (eCluster in this.paintCluster[this.clusterId].clusters[cluster].edges &&
+            cluster !== eCluster &&
+            cluster < eCluster) {
+
           const eCount = this.paintCluster[this.clusterId].clusters[cluster].edges[eCluster][0];
-          if (eCount > eMax) {
-            eMax = eCount;
+          if (eCount > this.eMax) {
+            this.eMax = eCount;
           }
-          if (eCount < eMin) {
-            eMin = eCount;
+          if (eCount < this.eMin) {
+            this.eMin = eCount;
           }
-          if (cluster !== eCluster && cluster < eCluster) {
-            edgeList.push([cluster, eCluster, eCount]);
+
+          const ePCount = this.paintCluster[this.clusterId].clusters[cluster].edges[eCluster][1] + eCount;
+          if (ePCount > this.ePMax) {
+            this.ePMax = ePCount;
           }
+          if (ePCount < this.ePMin) {
+            this.ePMin = ePCount;
+          }
+
+          edgeList.push([cluster, eCluster, eCount, ePCount]);
         }
       });
     });
-    const clusterScale = d3.scaleLinear().domain([min, max]).range([20, 40]);
-    const edgeScale = d3.scaleLinear().domain([eMin, eMax]).range([1, 20]);
+
+    const clusterScale = d3.scaleLinear().domain([1, max]).range([5, 40]);
+    this.edgeScale = d3.scaleLinear().domain([0, this.eMax]).range([0, 20]);
+    this.edgeProxyScale = d3.scaleLinear().domain([0, this.ePMax]).range([0, 20]);
 
     // draw edges
     centerGroup.selectAll("line").data(edgeList).enter().append("line")
@@ -243,111 +265,58 @@ class ClusterVis extends Vis {
       .attr("x2", (d) => clusterPos[d[1]][0])
       .attr("y1", (d) => clusterPos[d[0]][1])
       .attr("y2", (d) => clusterPos[d[1]][1])
-      .style("stroke", "rgba(0,0,0,0.3)")
-      .style("stroke-width", (d) => edgeScale(d[2]));
+      .style("stroke", "rgba(0,0,0,0.3)");
 
     // draw cluster circles
     const clusterGroups = centerGroup.selectAll("g").data(clusters).enter()
       .append("g")
+        .attr("class", "cluster-vis-entry")
         .attr("transform", (d) => `translate(${clusterPos[d].join(",")})`);
 
     clusterGroups.append("circle")
       .style("fill", (d) => this.paintCluster[this.clusterId].clusters[d].color)
-      .style("stroke", "none")
       .attr("r", (d) => clusterScale(clusterCounts[d]));
 
-    clusterGroups.append("text")
-      .attr("transform", (d) => `translate(0,${clusterScale(clusterCounts[d]) + 15})`)
+    const clusterText = clusterGroups.append("text")
+      .attr("transform", (d) => `translate(0,${clusterScale(clusterCounts[d]) + 15})`);
+
+    clusterText.append("tspan")
+      .attr("x", 0)
       .attr("text-anchor", "middle")
+      .style("font-weight", "bold")
       .text((d) => this.paintCluster[this.clusterId].clusters[d].name);
 
+    clusterText.append("tspan")
+      .attr("x", 0)
+      .attr("dy", 15)
+      .attr("text-anchor", "middle")
+      .text((d) => `(${clusterCounts[d]})`);
+
     clusterGroups.on("click", (d) => {
-      this.buildLevel1(d);
+      this.setSubView("level1", d);
     });
 
-    // Create the legend
-    // TODO: Move legend to lower right
-    const legendWidth = clusterScale(max) * 2;
-    const legend = this.svg.append("g")
-      .attr("transform", "translate(20,20)");
+    this.circleLegend(min, max, browser.i18n.getMessage("visLegendNumberOfUsers"));
+    this.paint();
+  }
 
-    let legendY = 20;
+  public setSubView(subView: string, subViewId: number) {
+    this.stateManager.urlState.subView = subView;
+    this.stateManager.urlState.subViewId = subViewId;
 
-    legend.append("text")
-      .text("Number of connections:")
-      .attr("transform", "translate(0,0)");
-
-    legend.append("line")
-      .style("stroke", "black")
-      .style("stroke-width", edgeScale(eMin))
-      .attr("x1", 0)
-      .attr("x2", legendWidth)
-      .attr("y1", legendY)
-      .attr("y2", legendY);
-
-    legend.append("text")
-      .attr("dy", 5)
-      .style("font-size", 10)
-      .text(eMin)
-      .attr("transform", `translate(${legendWidth + 5}, ${legendY})`);
-
-    legendY += 20;
-    legend.append("line")
-      .style("stroke", "black")
-      .style("stroke-width", edgeScale(eMax))
-      .attr("x1", 0)
-      .attr("x2", legendWidth)
-      .attr("y1", legendY)
-      .attr("y2", legendY);
-
-    legend.append("text")
-      .text(eMax)
-      .attr("dy", 5)
-      .style("font-size", 10)
-      .attr("transform", `translate(${legendWidth + 5}, ${legendY})`);
-
-    legendY += 40;
-
-    legend.append("text")
-      .text("Number of Users:")
-      .attr("transform", `translate(0,${legendY})`);
-
-    legend.append("circle")
-      .attr("transform", `translate(0,${legendY})`)
-      .style("fill", "black")
-      .attr("r", clusterScale(min))
-      .attr("cx", legendWidth / 2)
-      .attr("cy", legendWidth / 2);
-
-    legend.append("text")
-      .attr("dy", legendWidth / 2 + 5)
-      .style("font-size", 10)
-      .text(min)
-      .attr("transform", `translate(${legendWidth + 5}, ${legendY})`);
-
-    legendY += 25 + clusterScale(min) * 2;
-    legend.append("circle")
-      .attr("transform", `translate(0,${legendY})`)
-      .style("fill", "black")
-      .attr("r", clusterScale(max))
-      .attr("cx", legendWidth / 2)
-      .attr("cy", legendWidth / 2);
-
-    legend.append("text")
-      .text(max)
-      .attr("dy", legendWidth / 2 + 5)
-      .style("font-size", 10)
-      .attr("transform", `translate(${legendWidth + 5}, ${legendY})`);
+    this.stateManager.update();
   }
 
   public resetCluster() {
     this.svg.selectAll("*").remove();
-    this.edgeToggle.classed("invisible", false);
     this.edgeToggle.classed("active", false);
     this.showEdges = false;
-    this.proxyToggle.classed("invisible", false);
     this.proxyToggle.classed("active", false);
     this.showProxies = false;
+
+    if (this.simulation !== null) {
+      this.simulation.stop();
+    }
 
     this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
 
@@ -396,7 +365,7 @@ class ClusterVis extends Vis {
             [{
               callback: (d) => {
                 this.container.selectAll("#tooltip").remove();
-                this.buildLevel2(d);
+                this.setSubView("level2", d[0]);
               },
               label: "Show connections to this user &raquo;",
             }],
@@ -444,6 +413,9 @@ class ClusterVis extends Vis {
 
     this.level = 1;
 
+    let min = Number.MAX_VALUE;
+    let max = 0;
+
     const clusterMap = {};
     let emptyCluster = 0;
     const clusters = Object.keys(this.paintCluster[this.clusterId].clusters);
@@ -464,6 +436,13 @@ class ClusterVis extends Vis {
 
     this.paintNodes.forEach((node) => {
       if (node[6][this.clusterId][0].toString() === detailId.toString()) {
+        if (node[13][this.clusterId][detailId][0] > max) {
+          max = node[13][this.clusterId][detailId][0];
+        }
+        if (node[13][this.clusterId][detailId][0] < min) {
+          min = node[13][this.clusterId][detailId][0];
+        }
+
         if (node[14] !== undefined && node[14] !== null) {
           const img = document.createElement("img");
           img.onerror = (event: any) => {
@@ -571,16 +550,20 @@ class ClusterVis extends Vis {
       }
       return this.graph.nodes.length;
     });
+
+    this.circleLegend(min, max, browser.i18n.getMessage("visLegendNumberOfConnections"));
   }
 
-  public buildLevel2(data: any) {
+  public buildLevel2(detailId: number) {
     this.resetCluster();
     this.setupClick();
 
     this.level = 2;
 
+    let max = 0;
+
     this.paintEdges.forEach((edge) => {
-      if (edge[0] === data[0] || edge[1] === data[0]) {
+      if (edge[0] === detailId || edge[1] === detailId) {
         [edge[0], edge[1]].forEach((nodeId) => {
           if (!(nodeId in this.graph.nodeMap)) {
             if (this.paintNodes[nodeId][14] !== undefined && this.paintNodes[nodeId][14] !== null) {
@@ -599,7 +582,7 @@ class ClusterVis extends Vis {
             }
             this.paintNodes[nodeId].rUserCount = 0;
             this.paintNodes[nodeId].isCentral = false;
-            if (nodeId === data[0]) {
+            if (nodeId === detailId) {
               this.paintNodes[nodeId].isCentral = true;
             }
             this.graph.nodes.push(this.paintNodes[nodeId]);
@@ -618,6 +601,9 @@ class ClusterVis extends Vis {
           });
           [edge[0], edge[1]].forEach((nodeId) => {
             this.graph.nodes[this.graph.nodeMap[nodeId]].rUserCount += 1;
+            if (this.graph.nodes[this.graph.nodeMap[nodeId]].rUserCount > max) {
+              max = this.graph.nodes[this.graph.nodeMap[nodeId]].rUserCount;
+            }
           });
         } else {
           this.graph.proxieLinks.push({
@@ -629,13 +615,54 @@ class ClusterVis extends Vis {
     });
 
     this.setupSimulation((d) => d.rUserCount);
+    this.circleLegend(d3.min(this.graph.nodes, (d) => d.rUserCount), max, browser.i18n.getMessage("visLegendNumberOfConnections"));
   }
 
   // TODO: Add debouncer
   public paint() {
-    if (this.level >= 1) {
+    this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
+
+    if (this.showProxies) {
+      this.proxyToggle.select("text")
+        .html(browser.i18n.getMessage("visProxiesToggleOn"));
+    } else {
+      this.proxyToggle.select("text")
+        .html(browser.i18n.getMessage("visProxiesToggleOff"));
+    }
+    this.proxyToggle.classed("active", this.showProxies);
+
+    if (this.showEdges) {
+      this.edgeToggle.select("text")
+        .html(browser.i18n.getMessage("visClusterToggleOn"));
+    } else {
+      this.edgeToggle.select("text")
+        .html(browser.i18n.getMessage("visClusterToggleOff"));
+    }
+    this.edgeToggle.classed("active", this.showEdges);
+
+    if (this.level === 0) {
+      if (!this.showEdges) {
+        this.svg.selectAll(".centerGroup line")
+          .style("opacity", 0);
+      } else {
+        if (!this.showProxies) {
+          this.lineLegend(this.eMin, this.eMax);
+        } else {
+          this.lineLegend(this.ePMin, this.ePMax);
+        }
+
+        this.svg.selectAll(".centerGroup line")
+          .style("opacity", 1)
+          .style("stroke-width", (d) => {
+            if (!this.showProxies) {
+              return this.edgeScale(d[2]);
+            } else {
+              return this.edgeProxyScale(d[3]);
+            }
+          });
+      }
+    } else if (this.level >= 1) {
       this.ctx.save();
-      this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
       this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
       this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
 

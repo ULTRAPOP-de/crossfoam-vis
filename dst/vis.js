@@ -41,7 +41,7 @@ var ui_helpers_1 = require("@crossfoam/ui-helpers");
 var utils_1 = require("@crossfoam/utils");
 var d3 = require("d3");
 var Vis = /** @class */ (function () {
-    function Vis() {
+    function Vis(stateManager) {
         var _this = this;
         this.visType = null;
         this.canvasTransform = {
@@ -83,6 +83,7 @@ var Vis = /** @class */ (function () {
                 }
             });
         }); };
+        this.stateManager = stateManager;
         this.container = d3.select("#visContainer");
         d3.select("#visHelp")
             .on("click", function () {
@@ -112,6 +113,9 @@ var Vis = /** @class */ (function () {
     };
     Vis.prototype.update = function (data) {
         // destroy function
+    };
+    Vis.prototype.updateView = function () {
+        // called by the state manager
     };
     Vis.prototype.tooltip = function (data, _x, _y, color, actionLinks) {
         var _this = this;
@@ -248,9 +252,46 @@ var Vis = /** @class */ (function () {
         var size = message.node().getBoundingClientRect();
         message.style("top", (this.height / 2 - size.height / 2) + "px");
     };
-    Vis.prototype.circleLegend = function (min, max) {
+    Vis.prototype.lineLegend = function (min, max) {
+        // ------ LEGEND
+        d3.selectAll("#line-legend").remove();
+        var legendWidth = 500;
+        var legend = this.container.append("div")
+            .attr("id", "line-legend")
+            .append("svg")
+            .attr("width", legendWidth)
+            .attr("height", 25);
+        // --- Circle-Sizes
+        var lineLegend = legend.append("g")
+            .attr("transform", "translate(" + legendWidth + ",21)");
+        var lineLegendOffset = 5;
+        lineLegendOffset += 3 + lineLegend.append("text")
+            .attr("transform", "translate(-" + lineLegendOffset + ",0)")
+            .attr("class", "normal")
+            .attr("text-anchor", "end")
+            .text(max)
+            .node().getBBox().width;
+        lineLegend.append("image")
+            .attr("transform", "translate(-" + (lineLegendOffset + 40) + ",-13.5)")
+            .attr("width", 40)
+            .attr("height", 21)
+            .attr("xlink:href", "../assets/images/vis--legend--overview--line@2x.png");
+        lineLegendOffset += 43;
+        lineLegendOffset += 3 + lineLegend.append("text")
+            .attr("transform", "translate(-" + lineLegendOffset + ",0)")
+            .attr("class", "normal")
+            .attr("text-anchor", "end")
+            .text(min)
+            .node().getBBox().width;
+        lineLegend.append("text")
+            .attr("text-anchor", "end")
+            .attr("transform", "translate(-" + lineLegendOffset + ",0)")
+            .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+    };
+    Vis.prototype.circleLegend = function (min, max, altText) {
         // ------ LEGEND
         var _this = this;
+        d3.selectAll("#circle-legend").remove();
         var legendWidth = 500;
         var legend = this.container.append("div")
             .attr("id", "circle-legend")
@@ -296,10 +337,14 @@ var Vis = /** @class */ (function () {
             .attr("text-anchor", "end")
             .text(min)
             .node().getBBox().width;
+        var labelNumOfConnections = browser.i18n.getMessage("visLegendNumberOfConnections");
+        if (altText && altText !== null) {
+            labelNumOfConnections = altText;
+        }
         circleLegend.append("text")
             .attr("text-anchor", "end")
             .attr("transform", "translate(-" + circleLegendOffset + ",0)")
-            .text(browser.i18n.getMessage("visLegendNumberOfConnections"));
+            .text(labelNumOfConnections);
     };
     Vis.prototype.help = function () {
         var _this = this;
