@@ -152,13 +152,20 @@ var NetworkVis = /** @class */ (function (_super) {
                     + Math.pow(y - (node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y), 2));
                 if (dist <= pointSizes[ni] / 4 * _this_1.canvasTransform.k) {
                     var color = "#555555";
+                    var params = [];
                     if (data.nodes[ni][6][_this_1.clusterId].length > 0 &&
                         data.nodes[ni][6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
                         var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[data.nodes[ni][6][_this_1.clusterId]].color)
                             .rgb();
                         color = "rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")";
+                        params = [{
+                                callback: function (d) {
+                                    window.location.href = "vis.html?view=cluster&nUuid=" + _this_1.stateManager.urlState.nUuid + "&subView=level2&subViewId=" + d[0];
+                                },
+                                label: "Show connections to this user &raquo;",
+                            }];
                     }
-                    _this_1.tooltip(data.nodes[ni], node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x, node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y, color, []);
+                    _this_1.tooltip(data.nodes[ni], node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x, node[1] * _this_1.canvasTransform.k + _this_1.canvasTransform.y, color, params);
                     hit = true;
                 }
             });

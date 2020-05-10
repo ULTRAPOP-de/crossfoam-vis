@@ -7,6 +7,9 @@ class ListVis extends Vis {
   public helpData = [
     browser.i18n.getMessage("helpList_1"),
     browser.i18n.getMessage("helpList_2"),
+    browser.i18n.getMessage("helpList_3"),
+    browser.i18n.getMessage("helpList_4"),
+    browser.i18n.getMessage("helpList_5"),
   ];
 
   public build(data: any, centralNode: any) {
@@ -133,11 +136,32 @@ class ListVis extends Vis {
         d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
       })
       .attr("src", (d) => d[14]);
-
+    
     item.append("span")
+      .attr("class", "actionContainer")
       // TODO: profile generator function in the service module
-      .html((d) => `<a href="https://www.twitter.com/${d[1]}">${d[15]}</a>`);
+      .html((d) => `<span class="username">${d[15]}</span><br /><span class="actions"><a href="vis.html?view=cluster&nUuid=${this.stateManager.urlState.nUuid}&subView=level2&subViewId=${d[0]}">${browser.i18n.getMessage("visListUserNetwork")}&nbsp;&raquo;</a><br /><a href="https://www.twitter.com/${d[1]}">${browser.i18n.getMessage("visListUserSocialProfile")}&nbsp;&raquo;</a></span>`);
 
+    this.container.append("div")
+    .attr("id", "clusterList-search")
+    .append("input")
+      .attr("id", "clusterList-search-field")
+      .attr("type", "text")
+      .attr("placeholder", "Search for Username")
+      .on("input", () => {
+        const searchWord = d3.select("#clusterList-search-field").property("value").toLowerCase();
+        if (searchWord.length === 0) {
+          item.style("display", null);
+        } else {
+          item.style("display", (d) => {
+            if (d[15].toLowerCase().indexOf(searchWord) >= 0) {
+              return null;
+            } else {
+              return "none";
+            }
+          });
+        }
+      });
   }
 
 }

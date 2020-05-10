@@ -33,7 +33,16 @@ class ClusterVis extends Vis {
   public simulation = null;
 
   public helpData = [
+    browser.i18n.getMessage("helpCluster_1"),
+    browser.i18n.getMessage("helpCluster_2"),
+    browser.i18n.getMessage("helpCluster_3"),
+    browser.i18n.getMessage("helpCluster_4"),
   ];
+
+  constructor(stateManager: any) {
+    super(stateManager);
+    this.asyncGetIxState();
+  }
 
   public zoom(_this) {
     this.container.selectAll("#tooltip").remove();
@@ -620,6 +629,10 @@ class ClusterVis extends Vis {
 
   // TODO: Add debouncer
   public paint() {
+    if (this.showIxMessage) {
+      this.ixMessage(browser.i18n.getMessage("visClusterIntro"));
+    }
+
     this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
 
     if (this.showProxies) {
@@ -662,6 +675,8 @@ class ClusterVis extends Vis {
           });
       }
     } else if (this.level >= 1) {
+      d3.selectAll("#line-legend").remove();
+
       this.ctx.save();
       this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
       this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);

@@ -17,8 +17,8 @@ var d3 = require("d3");
 var vis_1 = require("./vis");
 var ClusterVis = /** @class */ (function (_super) {
     __extends(ClusterVis, _super);
-    function ClusterVis() {
-        var _this_1 = _super !== null && _super.apply(this, arguments) || this;
+    function ClusterVis(stateManager) {
+        var _this_1 = _super.call(this, stateManager) || this;
         _this_1.visType = "cluster";
         _this_1.imageSize = 48;
         _this_1.showEdges = false;
@@ -34,7 +34,13 @@ var ClusterVis = /** @class */ (function (_super) {
             userProxyLinks: [],
         };
         _this_1.simulation = null;
-        _this_1.helpData = [];
+        _this_1.helpData = [
+            browser.i18n.getMessage("helpCluster_1"),
+            browser.i18n.getMessage("helpCluster_2"),
+            browser.i18n.getMessage("helpCluster_3"),
+            browser.i18n.getMessage("helpCluster_4"),
+        ];
+        _this_1.asyncGetIxState();
         return _this_1;
     }
     ClusterVis.prototype.zoom = function (_this) {
@@ -542,6 +548,9 @@ var ClusterVis = /** @class */ (function (_super) {
     // TODO: Add debouncer
     ClusterVis.prototype.paint = function () {
         var _this_1 = this;
+        if (this.showIxMessage) {
+            this.ixMessage(browser.i18n.getMessage("visClusterIntro"));
+        }
         this.ctx.clearRect(0, 0, this.width * 2, this.height * 2);
         if (this.showProxies) {
             this.proxyToggle.select("text")
@@ -586,6 +595,7 @@ var ClusterVis = /** @class */ (function (_super) {
             }
         }
         else if (this.level >= 1) {
+            d3.selectAll("#line-legend").remove();
             this.ctx.save();
             this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
             this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);

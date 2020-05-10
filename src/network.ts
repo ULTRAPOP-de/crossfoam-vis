@@ -175,11 +175,18 @@ class NetworkVis extends Vis {
 
           if (dist <= pointSizes[ni] / 4 * this.canvasTransform.k) {
             let color = "#555555";
+            let params = [];
             if (data.nodes[ni][6][this.clusterId].length > 0 &&
               data.nodes[ni][6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
               const rgb = d3.color(this.paintCluster[this.clusterId].clusters[data.nodes[ni][6][this.clusterId]].color)
                 .rgb();
               color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+              params = [{
+                callback: (d) => {
+                  window.location.href = `vis.html?view=cluster&nUuid=${this.stateManager.urlState.nUuid}&subView=level2&subViewId=${d[0]}`;
+                },
+                label: "Show connections to this user &raquo;",
+              }];
             }
 
             this.tooltip(
@@ -187,7 +194,7 @@ class NetworkVis extends Vis {
               node[0] * this.canvasTransform.k + this.canvasTransform.x,
               node[1] * this.canvasTransform.k + this.canvasTransform.y,
               color,
-              [],
+              params,
             );
             hit = true;
           }

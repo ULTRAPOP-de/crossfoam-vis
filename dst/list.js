@@ -23,6 +23,9 @@ var ListVis = /** @class */ (function (_super) {
         _this.helpData = [
             browser.i18n.getMessage("helpList_1"),
             browser.i18n.getMessage("helpList_2"),
+            browser.i18n.getMessage("helpList_3"),
+            browser.i18n.getMessage("helpList_4"),
+            browser.i18n.getMessage("helpList_5"),
         ];
         return _this;
     }
@@ -107,8 +110,31 @@ var ListVis = /** @class */ (function (_super) {
         })
             .attr("src", function (d) { return d[14]; });
         item.append("span")
+            .attr("class", "actionContainer")
             // TODO: profile generator function in the service module
-            .html(function (d) { return "<a href=\"https://www.twitter.com/" + d[1] + "\">" + d[15] + "</a>"; });
+            .html(function (d) { return "<span class=\"username\">" + d[15] + "</span><br /><span class=\"actions\"><a href=\"vis.html?view=cluster&nUuid=" + _this.stateManager.urlState.nUuid + "&subView=level2&subViewId=" + d[0] + "\">" + browser.i18n.getMessage("visListUserNetwork") + "&nbsp;&raquo;</a><br /><a href=\"https://www.twitter.com/" + d[1] + "\">" + browser.i18n.getMessage("visListUserSocialProfile") + "&nbsp;&raquo;</a></span>"; });
+        this.container.append("div")
+            .attr("id", "clusterList-search")
+            .append("input")
+            .attr("id", "clusterList-search-field")
+            .attr("type", "text")
+            .attr("placeholder", "Search for Username")
+            .on("input", function () {
+            var searchWord = d3.select("#clusterList-search-field").property("value").toLowerCase();
+            if (searchWord.length === 0) {
+                item.style("display", null);
+            }
+            else {
+                item.style("display", function (d) {
+                    if (d[15].toLowerCase().indexOf(searchWord) >= 0) {
+                        return null;
+                    }
+                    else {
+                        return "none";
+                    }
+                });
+            }
+        });
     };
     return ListVis;
 }(vis_1.Vis));
