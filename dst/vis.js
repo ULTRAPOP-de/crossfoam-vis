@@ -442,7 +442,7 @@ var Vis = /** @class */ (function () {
                 return cfData.set("s--" + centralNode.service + "--a--" + centralNode.screenName + "-" + centralNode.nUuid + "--nw", networkData);
             })
                 .then(function () {
-                browser.runtime.sendMessage({
+                return browser.runtime.sendMessage({
                     date: Date.now(),
                     func: "network-updateNetworkDictionary",
                     nUuid: centralNode.nUuid,
@@ -452,15 +452,15 @@ var Vis = /** @class */ (function () {
                         centralNode.nUuid,
                     ],
                     type: "call",
-                }).then(function () {
-                    // we could at this point reintegrate the modified data
-                    // and only update the visualisation partially, but this
-                    // is likely going to run into problems, therefore, we
-                    // are simply reloading the current view
-                    location.reload();
-                }).catch(function (err) {
-                    throw err;
                 });
+            }).then(function () {
+                // we could at this point reintegrate the modified data
+                // and only update the visualisation partially, but this
+                // is likely going to run into problems, therefore, we
+                // are simply reloading the current view
+                location.reload();
+            }).catch(function (err) {
+                throw err;
             });
         });
     };

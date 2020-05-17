@@ -12,6 +12,11 @@ class ListVis extends Vis {
     browser.i18n.getMessage("helpList_5"),
   ];
 
+  constructor(stateManager: any) {
+    super(stateManager);
+    this.asyncGetIxState();
+  }
+
   public build(data: any, centralNode: any) {
     const clusterKeys = [];
     const clusterSort = [];
@@ -162,6 +167,11 @@ class ListVis extends Vis {
           });
         }
       });
+
+      // TODO: // TODO: Add debouncer
+      // if (this.showIxMessage) {
+      //   this.ixMessage(browser.i18n.getMessage("visClusterIntro"));
+      // }
   }
 
 }

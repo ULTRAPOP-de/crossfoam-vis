@@ -528,7 +528,7 @@ class Vis {
               networkData);
           })
           .then(() => {
-            browser.runtime.sendMessage({
+            return browser.runtime.sendMessage({
               date: Date.now(),
               func: "network-updateNetworkDictionary",
               nUuid: centralNode.nUuid,
@@ -538,15 +538,15 @@ class Vis {
                 centralNode.nUuid,
               ],
               type: "call",
-            }).then(() => {
-              // we could at this point reintegrate the modified data
-              // and only update the visualisation partially, but this
-              // is likely going to run into problems, therefore, we
-              // are simply reloading the current view
-              location.reload();
-            }).catch((err) => {
-              throw err;
             });
+          }).then(() => {
+            // we could at this point reintegrate the modified data
+            // and only update the visualisation partially, but this
+            // is likely going to run into problems, therefore, we
+            // are simply reloading the current view
+            location.reload();
+          }).catch((err) => {
+            throw err;
           });
 
       });

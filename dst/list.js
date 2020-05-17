@@ -17,8 +17,8 @@ var d3 = require("d3");
 var vis_1 = require("./vis");
 var ListVis = /** @class */ (function (_super) {
     __extends(ListVis, _super);
-    function ListVis() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
+    function ListVis(stateManager) {
+        var _this = _super.call(this, stateManager) || this;
         _this.visType = "list";
         _this.helpData = [
             browser.i18n.getMessage("helpList_1"),
@@ -27,6 +27,7 @@ var ListVis = /** @class */ (function (_super) {
             browser.i18n.getMessage("helpList_4"),
             browser.i18n.getMessage("helpList_5"),
         ];
+        _this.asyncGetIxState();
         return _this;
     }
     ListVis.prototype.build = function (data, centralNode) {
@@ -135,6 +136,10 @@ var ListVis = /** @class */ (function (_super) {
                 });
             }
         });
+        // TODO: // TODO: Add debouncer
+        // if (this.showIxMessage) {
+        //   this.ixMessage(browser.i18n.getMessage("visClusterIntro"));
+        // }
     };
     return ListVis;
 }(vis_1.Vis));
