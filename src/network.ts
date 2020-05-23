@@ -1,4 +1,3 @@
-import { debounce } from "@crossfoam/utils";
 import * as d3 from "d3";
 import * as REGL from "regl";
 import { Vis } from "./vis";
@@ -30,10 +29,6 @@ class NetworkVis extends Vis {
     browser.i18n.getMessage("helpNetwork_6"),
     browser.i18n.getMessage("helpNetwork_7"),
   ];
-
-  public handleResize = debounce(() => {
-    this.resize(true);
-  }, 200, true);
 
   constructor(stateManager: any) {
     super(stateManager);
@@ -147,10 +142,6 @@ class NetworkVis extends Vis {
     });
 
     this.resize(false);
-
-    d3.select(window).on("resize", () => {
-      this.handleResize();
-    });
 
     // canvas
     const canvas = this.container.append("div")

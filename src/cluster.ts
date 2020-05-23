@@ -484,11 +484,13 @@ class ClusterVis extends Vis {
             0: clusterTempId,
             1: "cluster",
             2: this.paintCluster[this.clusterId].clusters[cluster].name,
+            ci,
             color: this.paintCluster[this.clusterId].clusters[cluster].color,
             fixed: true,
             fx: radius * Math.cos(ci * theta) + this.width / 2,
             fy: radius * Math.sin(ci * theta) + this.height / 2,
             r: 20,
+            theta,
         });
         clusterMap[cluster] = clusterTempId;
         this.graph.nodeMap[clusterTempId] = this.graph.nodes.length - 1;
@@ -790,6 +792,26 @@ class ClusterVis extends Vis {
 
     this.svg.selectAll(".centerGroup")
       .attr("transform", `translate(${this.width / 2}, ${this.height / 2})`);
+
+    let radius = this.height;
+    if (radius > this.width) {
+        radius = this.width;
+    }
+    radius = radius / 2 - 70;
+
+    if (this.simulation) {
+      this.graph.nodes.forEach((node) => {
+        if ("ci" in node) {
+          node.fx = radius * Math.cos(node.ci * node.theta) + this.width / 2;
+          node.fy = radius * Math.sin(node.ci * node.theta) + this.height / 2;
+        }
+      });
+
+      this.simulation
+        .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20))
+        .alpha(0)
+        .restart();
+    }
   }
 
   // TODO: Move to utils

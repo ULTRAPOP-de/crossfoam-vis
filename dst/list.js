@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ListVis = void 0;
 var d3 = require("d3");
 var vis_1 = require("./vis");
 var ListVis = /** @class */ (function (_super) {

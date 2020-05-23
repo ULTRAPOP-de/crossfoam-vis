@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Vis = void 0;
 var cfData = require("@crossfoam/data");
 var ui_helpers_1 = require("@crossfoam/ui-helpers");
 var utils_1 = require("@crossfoam/utils");
@@ -57,6 +58,9 @@ var Vis = /** @class */ (function () {
         this.helpData = [];
         this.showIxTooltip = true;
         this.showIxMessage = true;
+        this.handleResize = utils_1.debounce(function () {
+            _this.resize(true);
+        }, 200, true);
         this.asyncGetIxState = function () { return __awaiter(_this, void 0, void 0, function () {
             var r;
             var _this = this;
@@ -89,6 +93,9 @@ var Vis = /** @class */ (function () {
             .on("click", function () {
             _this.help();
         });
+        d3.select(window).on("resize", function () {
+            _this.handleResize();
+        });
         this.resize(false);
     }
     Object.defineProperty(Vis.prototype, "cluster", {
@@ -99,7 +106,7 @@ var Vis = /** @class */ (function () {
             this.clusterId = clusterId;
             this.update(null);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Vis.prototype.init = function () {
@@ -437,7 +444,6 @@ var Vis = /** @class */ (function () {
                 .then(function (networkData) {
                 networkData.cluster[_this.clusterId].clusters[data.id].name = name;
                 networkData.cluster[_this.clusterId].clusters[data.id].color = color;
-                networkData.cluster[_this.clusterId].clusters[data.id].modified = true;
                 // TODO: indicator while saving happens, update dictionary afterwards...
                 return cfData.set("s--" + centralNode.service + "--a--" + centralNode.screenName + "-" + centralNode.nUuid + "--nw", networkData);
             })

@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ClusterVis = void 0;
 var d3 = require("d3");
 var vis_1 = require("./vis");
 var ClusterVis = /** @class */ (function (_super) {
@@ -411,11 +412,13 @@ var ClusterVis = /** @class */ (function (_super) {
                     0: clusterTempId,
                     1: "cluster",
                     2: _this_1.paintCluster[_this_1.clusterId].clusters[cluster].name,
+                    ci: ci,
                     color: _this_1.paintCluster[_this_1.clusterId].clusters[cluster].color,
                     fixed: true,
                     fx: radius * Math.cos(ci * theta) + _this_1.width / 2,
                     fy: radius * Math.sin(ci * theta) + _this_1.height / 2,
                     r: 20,
+                    theta: theta,
                 });
                 clusterMap[cluster] = clusterTempId;
                 _this_1.graph.nodeMap[clusterTempId] = _this_1.graph.nodes.length - 1;
@@ -663,6 +666,7 @@ var ClusterVis = /** @class */ (function (_super) {
         }
     };
     ClusterVis.prototype.update = function (data) {
+        var _this_1 = this;
         this.outerSvg
             .attr("width", this.width)
             .attr("height", this.height);
@@ -677,6 +681,23 @@ var ClusterVis = /** @class */ (function (_super) {
             .attr("height", this.height * 2);
         this.svg.selectAll(".centerGroup")
             .attr("transform", "translate(" + this.width / 2 + ", " + this.height / 2 + ")");
+        var radius = this.height;
+        if (radius > this.width) {
+            radius = this.width;
+        }
+        radius = radius / 2 - 70;
+        if (this.simulation) {
+            this.graph.nodes.forEach(function (node) {
+                if ("ci" in node) {
+                    node.fx = radius * Math.cos(node.ci * node.theta) + _this_1.width / 2;
+                    node.fy = radius * Math.sin(node.ci * node.theta) + _this_1.height / 2;
+                }
+            });
+            this.simulation
+                .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20))
+                .alpha(0)
+                .restart();
+        }
     };
     // TODO: Move to utils
     ClusterVis.prototype.circlePath = function (x, y, r, direction) {

@@ -13,7 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var utils_1 = require("@crossfoam/utils");
+exports.NetworkVis = void 0;
 var d3 = require("d3");
 var REGL = require("regl");
 var vis_1 = require("./vis");
@@ -35,9 +35,6 @@ var NetworkVis = /** @class */ (function (_super) {
             browser.i18n.getMessage("helpNetwork_6"),
             browser.i18n.getMessage("helpNetwork_7"),
         ];
-        _this_1.handleResize = utils_1.debounce(function () {
-            _this_1.resize(true);
-        }, 200, true);
         _this_1.asyncGetIxState();
         return _this_1;
     }
@@ -132,9 +129,6 @@ var NetworkVis = /** @class */ (function (_super) {
             }
         });
         this.resize(false);
-        d3.select(window).on("resize", function () {
-            _this_1.handleResize();
-        });
         // canvas
         var canvas = this.container.append("div")
             .style("width", this.width + "px")

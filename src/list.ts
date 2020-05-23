@@ -141,7 +141,7 @@ class ListVis extends Vis {
         d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
       })
       .attr("src", (d) => d[14]);
-    
+
     item.append("span")
       .attr("class", "actionContainer")
       // TODO: profile generator function in the service module

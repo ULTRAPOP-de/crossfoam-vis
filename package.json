@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@crossfoam/data": "^1.0.0",
-    "@crossfoam/ui-helpers": "^1.0.1",
+    "@crossfoam/ui-helpers": "file:../crossfoam-ui-helpers",
     "@crossfoam/utils": "^1.0.1",
     "@pixi/unsafe-eval": "^5.0.4",
     "a-color-picker": "^1.1.8",
@@ -41,10 +41,10 @@
     "regl": "^1.3.13"
   },
   "devDependencies": {
-    "@types/core-js": "^2.5.0",
-    "nodemon": "^1.18.9",
-    "tslint": "^5.19.0",
-    "typescript": "^3.2.2",
+    "@types/core-js": "^2.5.3",
+    "nodemon": "^1.19.4",
+    "tslint": "^5.20.1",
+    "typescript": "^3.9.3",
     "web-ext-types": "^3.1.0"
   }
 }

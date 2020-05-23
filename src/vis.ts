@@ -1,6 +1,6 @@
 import * as cfData from "@crossfoam/data";
 import { blockSplash, colorPicker, formatNumber, isRetinaDisplay } from "@crossfoam/ui-helpers";
-import { uuid } from "@crossfoam/utils";
+import { debounce, uuid } from "@crossfoam/utils";
 import * as d3 from "d3";
 
 class Vis {
@@ -43,6 +43,10 @@ class Vis {
     this.update(null);
   }
 
+  public handleResize = debounce(() => {
+    this.resize(true);
+  }, 200, true);
+
   constructor(stateManager: any) {
     this.stateManager = stateManager;
     this.container = d3.select("#visContainer");
@@ -51,6 +55,10 @@ class Vis {
       .on("click", () => {
         this.help();
       });
+
+    d3.select(window).on("resize", () => {
+      this.handleResize();
+    });
 
     this.resize(false);
   }
@@ -520,7 +528,6 @@ class Vis {
 
             networkData.cluster[this.clusterId].clusters[data.id].name = name;
             networkData.cluster[this.clusterId].clusters[data.id].color = color;
-            networkData.cluster[this.clusterId].clusters[data.id].modified = true;
 
             // TODO: indicator while saving happens, update dictionary afterwards...
 
