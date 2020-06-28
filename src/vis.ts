@@ -1,5 +1,5 @@
 import * as cfData from "@crossfoam/data";
-import { blockSplash, colorPicker, formatNumber, isRetinaDisplay } from "@crossfoam/ui-helpers";
+import { blockSplash, colorPicker, formatNumber, isRetinaDisplay, addHTML } from "@crossfoam/ui-helpers";
 import { debounce, uuid } from "@crossfoam/utils";
 import * as d3 from "d3";
 
@@ -481,8 +481,8 @@ class Vis {
     modalContainer
       .setAttribute("id", "cf--modal-container-" + modalUUID);
 
-    modalContainer
-      .innerHTML = `<div class="cf--modal-box">
+    addHTML(modalContainer,
+      `<div class="cf--modal-box">
       <div class="cf--modal-title">${browser.i18n.getMessage("clusterModifyTitle")}</div>
       <div class="cf--modal-message">
         <form>
@@ -496,7 +496,7 @@ class Vis {
         <button class='cf--modal-button-0' data-value='cancel'>${browser.i18n.getMessage("cancel")}</button>
         <button class='cf--modal-button-1' data-value='save'>${browser.i18n.getMessage("save")}</button>
       </div>
-  </div>`;
+  </div>`);
 
     document.body.appendChild(modalContainer);
 

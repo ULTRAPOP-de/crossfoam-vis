@@ -1,6 +1,6 @@
 {
   "name": "@crossfoam/vis",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "visualisation base class",
   "main": "dst/index.js",
   "scripts": {
@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@crossfoam/data": "^1.0.3",
-    "@crossfoam/ui-helpers": "^1.0.6",
+    "@crossfoam/ui-helpers": "^1.0.8",
     "@crossfoam/utils": "^1.0.2",
     "@pixi/unsafe-eval": "^5.0.4",
     "a-color-picker": "^1.1.8",
