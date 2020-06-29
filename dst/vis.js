@@ -246,6 +246,7 @@ var Vis = /** @class */ (function () {
             .attr("id", "ixTooltip")
             .style("left", x + "px")
             .style("top", y + "px")
+            .style("opacity", 0)
             .append("img")
             .attr("src", "../assets/images/vis--overview--interaction-pointer@2x.png");
     };
@@ -259,6 +260,7 @@ var Vis = /** @class */ (function () {
         this.container.selectAll("#ixMessage").remove();
         var message = this.container.append("div")
             .attr("id", "ixMessage")
+            .style("opacity", 0)
             .html("<a><img src=\"../assets/images/vis--closeButton@2x.png\" /></a><br /><p>" + text + "</p>")
             .on("click", function () {
             d3.selectAll("#ixMessage").remove();

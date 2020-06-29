@@ -260,6 +260,7 @@ class Vis {
       .attr("id", "ixTooltip")
       .style("left", `${x}px`)
       .style("top", `${y}px`)
+      .style("opacity", 0)
       .append("img")
         .attr("src", "../assets/images/vis--overview--interaction-pointer@2x.png");
   }
@@ -274,6 +275,7 @@ class Vis {
     this.container.selectAll("#ixMessage").remove();
     const message = this.container.append("div")
       .attr("id", "ixMessage")
+      .style("opacity", 0)
       .html(`<a><img src="../assets/images/vis--closeButton@2x.png" /></a><br /><p>${text}</p>`)
       .on("click", () => {
         d3.selectAll("#ixMessage").remove();
