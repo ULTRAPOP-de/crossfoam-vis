@@ -343,6 +343,9 @@ var NetworkVis = /** @class */ (function (_super) {
         });
         this.time = 1;
         this.update(false);
+        setTimeout(function () {
+            _this_1.update(false);
+        }, 100);
     };
     NetworkVis.prototype.glAnimate = function () {
         var _this_1 = this;

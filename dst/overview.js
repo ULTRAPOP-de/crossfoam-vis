@@ -295,6 +295,9 @@ var OverviewVis = /** @class */ (function (_super) {
         });
         this.time = 1;
         this.update(false);
+        setTimeout(function () {
+            _this_1.update(false);
+        }, 100);
     };
     OverviewVis.prototype.glAnimate = function () {
         var _this_1 = this;

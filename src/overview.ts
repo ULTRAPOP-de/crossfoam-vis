@@ -400,6 +400,10 @@ class OverviewVis extends Vis {
 
     this.time = 1;
     this.update(false);
+
+    setTimeout(() => {
+      this.update(false);
+    }, 100);
   }
 
   public glAnimate() {
