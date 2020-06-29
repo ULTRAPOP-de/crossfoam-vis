@@ -64,11 +64,15 @@ class Vis {
   }
 
   public asyncGetIxState = async (): Promise<boolean> => {
+    d3.selectAll("#ixTooltip").style("opacity", 0);
+    d3.selectAll("#ixMessage").style("opacity", 0);
     const r = await cfData.get(`ixTooltip--${this.visType}`, "false")
       .then((alreadyShown) => {
         if (alreadyShown === "true") {
           this.showIxTooltip = false;
           d3.selectAll("#ixTooltip").remove();
+        } else {
+          d3.selectAll("#ixTooltip").style("opacity", 1);
         }
         return cfData.get(`ixMessage--${this.visType}`, "false");
       })
@@ -76,6 +80,8 @@ class Vis {
         if (alreadyShown === "true") {
           this.showIxMessage = false;
           d3.selectAll("#ixMessage").remove();
+        } else {
+          d3.selectAll("#ixMessage").style("opacity", 1);
         }
         return "true";
       });

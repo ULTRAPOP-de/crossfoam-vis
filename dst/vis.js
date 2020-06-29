@@ -66,21 +66,30 @@ var Vis = /** @class */ (function () {
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, cfData.get("ixTooltip--" + this.visType, "false")
-                            .then(function (alreadyShown) {
-                            if (alreadyShown === "true") {
-                                _this.showIxTooltip = false;
-                                d3.selectAll("#ixTooltip").remove();
-                            }
-                            return cfData.get("ixMessage--" + _this.visType, "false");
-                        })
-                            .then(function (alreadyShown) {
-                            if (alreadyShown === "true") {
-                                _this.showIxMessage = false;
-                                d3.selectAll("#ixMessage").remove();
-                            }
-                            return "true";
-                        })];
+                    case 0:
+                        d3.selectAll("#ixTooltip").style("opacity", 0);
+                        d3.selectAll("#ixMessage").style("opacity", 0);
+                        return [4 /*yield*/, cfData.get("ixTooltip--" + this.visType, "false")
+                                .then(function (alreadyShown) {
+                                if (alreadyShown === "true") {
+                                    _this.showIxTooltip = false;
+                                    d3.selectAll("#ixTooltip").remove();
+                                }
+                                else {
+                                    d3.selectAll("#ixTooltip").style("opacity", 1);
+                                }
+                                return cfData.get("ixMessage--" + _this.visType, "false");
+                            })
+                                .then(function (alreadyShown) {
+                                if (alreadyShown === "true") {
+                                    _this.showIxMessage = false;
+                                    d3.selectAll("#ixMessage").remove();
+                                }
+                                else {
+                                    d3.selectAll("#ixMessage").style("opacity", 1);
+                                }
+                                return "true";
+                            })];
                     case 1:
                         r = _a.sent();
                         return [2 /*return*/, r];

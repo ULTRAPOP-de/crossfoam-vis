@@ -1,6 +1,6 @@
 {
   "name": "@crossfoam/vis",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "visualisation base class",
   "main": "dst/index.js",
   "scripts": {
