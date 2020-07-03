@@ -14,7 +14,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ListVis = void 0;
-var d3 = require("d3");
+var d3_1 = require("d3");
 var vis_1 = require("./vis");
 var ListVis = /** @class */ (function (_super) {
     __extends(ListVis, _super);
@@ -66,7 +66,7 @@ var ListVis = /** @class */ (function (_super) {
             cluster.clusters.sort(function (a, b) {
                 return b[10] - a[10];
             });
-            r.push(d3.scaleLinear().range([0, 12]).domain([0, cluster.max]));
+            r.push(d3_1.scaleLinear().range([0, 12]).domain([0, cluster.max]));
         });
         this.container.selectAll("*").remove();
         // TODO: add a headline with centralNode in it...
@@ -108,7 +108,7 @@ var ListVis = /** @class */ (function (_super) {
         });
         item.append("span").append("img")
             .on("error", function (d, i, a) {
-            d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
+            d3_1.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
         })
             .attr("src", function (d) { return d[14]; });
         item.append("span")
@@ -122,7 +122,7 @@ var ListVis = /** @class */ (function (_super) {
             .attr("type", "text")
             .attr("placeholder", "Search for Username")
             .on("input", function () {
-            var searchWord = d3.select("#clusterList-search-field").property("value").toLowerCase();
+            var searchWord = d3_1.select("#clusterList-search-field").property("value").toLowerCase();
             if (searchWord.length === 0) {
                 item.style("display", null);
             }

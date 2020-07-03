@@ -14,7 +14,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClusterVis = void 0;
-var d3 = require("d3");
+var d3_1 = require("d3");
 var vis_1 = require("./vis");
 var ClusterVis = /** @class */ (function (_super) {
     __extends(ClusterVis, _super);
@@ -46,7 +46,7 @@ var ClusterVis = /** @class */ (function (_super) {
     }
     ClusterVis.prototype.zoom = function (_this) {
         this.container.selectAll("#tooltip").remove();
-        _this.canvasTransform = d3.event.transform;
+        _this.canvasTransform = d3_1.event.transform;
         this.paint();
     };
     ClusterVis.prototype.hitTest = function (x, y) {
@@ -84,7 +84,7 @@ var ClusterVis = /** @class */ (function (_super) {
         this.paintCentralNode = centralNode;
         this.canvas = this.container.append("canvas");
         this.ctx = this.canvas.node().getContext("2d");
-        this.zoomObj = d3.zoom()
+        this.zoomObj = d3_1.zoom()
             .scaleExtent([0.1, 8])
             .on("zoom", function () { _this_1.zoom(_this_1); });
         this.outerSvg = this.container.append("svg")
@@ -229,9 +229,9 @@ var ClusterVis = /** @class */ (function (_super) {
                 }
             });
         });
-        var clusterScale = d3.scaleLinear().domain([1, max]).range([5, 40]);
-        this.edgeScale = d3.scaleLinear().domain([0, this.eMax]).range([0, 20]);
-        this.edgeProxyScale = d3.scaleLinear().domain([0, this.ePMax]).range([0, 20]);
+        var clusterScale = d3_1.scaleLinear().domain([1, max]).range([5, 40]);
+        this.edgeScale = d3_1.scaleLinear().domain([0, this.eMax]).range([0, 20]);
+        this.edgeProxyScale = d3_1.scaleLinear().domain([0, this.ePMax]).range([0, 20]);
         // draw edges
         centerGroup.selectAll("line").data(edgeList).enter().append("line")
             .attr("x1", function (d) { return clusterPos[d[0]][0]; })
@@ -279,7 +279,7 @@ var ClusterVis = /** @class */ (function (_super) {
         if (this.simulation !== null) {
             this.simulation.stop();
         }
-        this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
+        this.outerSvg.call(this.zoomObj.transform, d3_1.zoomIdentity);
         this.graph = {
             links: [],
             nodeMap: {},
@@ -293,8 +293,8 @@ var ClusterVis = /** @class */ (function (_super) {
         var _this_1 = this;
         this.outerSvg.on("click", function () {
             if (_this_1.level > 0) {
-                var x = d3.event.pageX;
-                var y = d3.event.pageY;
+                var x = d3_1.event.pageX;
+                var y = d3_1.event.pageY;
                 var hit_1 = _this_1.hitTest(x, y);
                 if (hit_1 && hit_1[1] !== "cluster") {
                     var color = "#555555";
@@ -332,12 +332,12 @@ var ClusterVis = /** @class */ (function (_super) {
     };
     ClusterVis.prototype.setupSimulation = function (selector) {
         var _this_1 = this;
-        this.simulation = d3.forceSimulation()
-            .force("link", d3.forceLink().id(function (d) { return d[0]; }))
-            .force("charge", d3.forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
-            .force("collide", d3.forceCollide().radius(function (d) { return d.r + 20; }).iterations(2))
-            .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
-        var rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain(d3.extent(this.graph.nodes, selector));
+        this.simulation = d3_1.forceSimulation()
+            .force("link", d3_1.forceLink().id(function (d) { return d[0]; }))
+            .force("charge", d3_1.forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
+            .force("collide", d3_1.forceCollide().radius(function (d) { return d.r + 20; }).iterations(2))
+            .force("center", d3_1.forceCenter(this.width / 2, this.height / 2 + 20));
+        var rScale = d3_1.scaleLinear().range([5, this.imageSize / 4]).domain(d3_1.extent(this.graph.nodes, selector));
         this.graph.nodes.forEach(function (node) {
             var r = 20;
             if (13 in node) {
@@ -546,7 +546,7 @@ var ClusterVis = /** @class */ (function (_super) {
             }
         });
         this.setupSimulation(function (d) { return d.rUserCount; });
-        this.circleLegend(d3.min(this.graph.nodes, function (d) { return d.rUserCount; }), max, browser.i18n.getMessage("visLegendNumberOfConnections"));
+        this.circleLegend(d3_1.min(this.graph.nodes, function (d) { return d.rUserCount; }), max, browser.i18n.getMessage("visLegendNumberOfConnections"));
     };
     // TODO: Add debouncer
     ClusterVis.prototype.paint = function () {
@@ -598,7 +598,7 @@ var ClusterVis = /** @class */ (function (_super) {
             }
         }
         else if (this.level >= 1) {
-            d3.selectAll("#line-legend").remove();
+            d3_1.selectAll("#line-legend").remove();
             this.ctx.save();
             this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
             this.ctx.scale(this.canvasTransform.k, this.canvasTransform.k);
@@ -694,7 +694,7 @@ var ClusterVis = /** @class */ (function (_super) {
                 }
             });
             this.simulation
-                .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20))
+                .force("center", d3_1.forceCenter(this.width / 2, this.height / 2 + 20))
                 .alpha(0)
                 .restart();
         }

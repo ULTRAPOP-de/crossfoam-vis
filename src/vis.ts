@@ -1,7 +1,7 @@
 import * as cfData from "@crossfoam/data";
-import { blockSplash, colorPicker, formatNumber, isRetinaDisplay, addHTML } from "@crossfoam/ui-helpers";
+import { addHTML, blockSplash, colorPicker, formatNumber, isRetinaDisplay } from "@crossfoam/ui-helpers";
 import { debounce, uuid } from "@crossfoam/utils";
-import * as d3 from "d3";
+import { select, selectAll } from "d3";
 
 class Vis {
   public visType: string = null;
@@ -49,14 +49,14 @@ class Vis {
 
   constructor(stateManager: any) {
     this.stateManager = stateManager;
-    this.container = d3.select("#visContainer");
+    this.container = select("#visContainer");
 
-    d3.select("#visHelp")
+    select("#visHelp")
       .on("click", () => {
         this.help();
       });
 
-    d3.select(window).on("resize", () => {
+    select(window).on("resize", () => {
       this.handleResize();
     });
 
@@ -64,24 +64,24 @@ class Vis {
   }
 
   public asyncGetIxState = async (): Promise<boolean> => {
-    d3.selectAll("#ixTooltip").style("opacity", 0);
-    d3.selectAll("#ixMessage").style("opacity", 0);
+    selectAll("#ixTooltip").style("opacity", 0);
+    selectAll("#ixMessage").style("opacity", 0);
     const r = await cfData.get(`ixTooltip--${this.visType}`, "false")
       .then((alreadyShown) => {
         if (alreadyShown === "true") {
           this.showIxTooltip = false;
-          d3.selectAll("#ixTooltip").remove();
+          selectAll("#ixTooltip").remove();
         } else {
-          d3.selectAll("#ixTooltip").style("opacity", 1);
+          selectAll("#ixTooltip").style("opacity", 1);
         }
         return cfData.get(`ixMessage--${this.visType}`, "false");
       })
       .then((alreadyShown) => {
         if (alreadyShown === "true") {
           this.showIxMessage = false;
-          d3.selectAll("#ixMessage").remove();
+          selectAll("#ixMessage").remove();
         } else {
-          d3.selectAll("#ixMessage").style("opacity", 1);
+          selectAll("#ixMessage").style("opacity", 1);
         }
         return "true";
       });
@@ -164,7 +164,7 @@ class Vis {
 
     link.append("span").append("img")
       .on("error", (d, i, a) => {
-        d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
+        select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
       })
       .attr("src", (data.length < 15) ? data[10] : data[14]);
 
@@ -266,7 +266,7 @@ class Vis {
   }
 
   public ixTooltipHide() {
-    d3.selectAll("#ixTooltip").remove();
+    selectAll("#ixTooltip").remove();
     this.showIxTooltip = false;
     cfData.set(`ixTooltip--${this.visType}`, "true");
   }
@@ -278,7 +278,7 @@ class Vis {
       .style("opacity", 0)
       .html(`<a><img src="../assets/images/vis--closeButton@2x.png" /></a><br /><p>${text}</p>`)
       .on("click", () => {
-        d3.selectAll("#ixMessage").remove();
+        selectAll("#ixMessage").remove();
         this.showIxMessage = false;
         cfData.set(`ixMessage--${this.visType}`, "true");
       });
@@ -289,7 +289,7 @@ class Vis {
   public lineLegend(min: number, max: number) {
     // ------ LEGEND
 
-    d3.selectAll("#line-legend").remove();
+    selectAll("#line-legend").remove();
 
     const legendWidth = 500;
     const legend = this.container.append("div")
@@ -335,7 +335,7 @@ class Vis {
   public circleLegend(min: number, max: number, altText?: string) {
     // ------ LEGEND
 
-    d3.selectAll("#circle-legend").remove();
+    selectAll("#circle-legend").remove();
 
     const legendWidth = 500;
     const legend = this.container.append("div")
@@ -406,7 +406,7 @@ class Vis {
   public help() {
     let helpCount = 0;
 
-    const helpContainer = d3.select("#page").append("div")
+    const helpContainer = select("#page").append("div")
       .attr("id", "helpContainer")
       .html(`<p></p>`);
 
@@ -414,15 +414,15 @@ class Vis {
       .attr("id", "helpButtons");
 
     const closeHelp = () => {
-      d3.selectAll("#helpContainer").remove();
+      selectAll("#helpContainer").remove();
     };
 
     const updateHelp = () => {
-      d3.selectAll(".helpButton").style("opacity", 1);
+      selectAll(".helpButton").style("opacity", 1);
       if (helpCount === 0) {
-        d3.select("#helpButton-prev").style("opacity", 0.3);
+        select("#helpButton-prev").style("opacity", 0.3);
       } else if (helpCount === this.helpData.length - 1) {
-        d3.select("#helpButton-next").style("opacity", 0.3);
+        select("#helpButton-next").style("opacity", 0.3);
       }
       helpContainer.select("#helpContainer p").html(this.helpData[helpCount]);
     };

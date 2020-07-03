@@ -1,4 +1,4 @@
-import * as d3 from "d3";
+import { scaleLinear, select } from "d3";
 import { Vis } from "./vis";
 
 class ListVis extends Vis {
@@ -54,7 +54,7 @@ class ListVis extends Vis {
       cluster.clusters.sort((a, b) => {
         return b[10] - a[10];
       });
-      r.push(d3.scaleLinear().range([0, 12]).domain([0, cluster.max]));
+      r.push(scaleLinear().range([0, 12]).domain([0, cluster.max]));
     });
 
     this.container.selectAll("*").remove();
@@ -138,7 +138,7 @@ class ListVis extends Vis {
 
     item.append("span").append("img")
       .on("error", (d, i, a) => {
-        d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
+        select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
       })
       .attr("src", (d) => d[14]);
 
@@ -154,7 +154,7 @@ class ListVis extends Vis {
       .attr("type", "text")
       .attr("placeholder", "Search for Username")
       .on("input", () => {
-        const searchWord = d3.select("#clusterList-search-field").property("value").toLowerCase();
+        const searchWord = select("#clusterList-search-field").property("value").toLowerCase();
         if (searchWord.length === 0) {
           item.style("display", null);
         } else {

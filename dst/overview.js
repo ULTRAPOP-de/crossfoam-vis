@@ -23,7 +23,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OverviewVis = void 0;
 var ui_helpers_1 = require("@crossfoam/ui-helpers");
 var utils_1 = require("@crossfoam/utils");
-var d3 = require("d3");
+var d3_1 = require("d3");
 var REGL = require("regl");
 var vis_1 = require("./vis");
 var OverviewVis = /** @class */ (function (_super) {
@@ -66,7 +66,7 @@ var OverviewVis = /** @class */ (function (_super) {
     };
     OverviewVis.prototype.zoom = function (_this) {
         this.destroyTooltip();
-        _this.canvasTransform = d3.event.transform;
+        _this.canvasTransform = d3_1.event.transform;
         _this.paint();
     };
     OverviewVis.prototype.circlePath = function (x, y, r, direction) {
@@ -92,7 +92,7 @@ var OverviewVis = /** @class */ (function (_super) {
         this.clickNodes = __spreadArrays(data.nodes, data.proxies);
         this.paintCluster = data.cluster;
         this.resize(false);
-        d3.select(window).on("resize", function () {
+        d3_1.select(window).on("resize", function () {
             _this_1.handleResize();
         });
         // canvas
@@ -104,8 +104,8 @@ var OverviewVis = /** @class */ (function (_super) {
             .attr("id", "overview-svg")
             .style("z-index", 2)
             .on("click", function () {
-            var x = d3.event.pageX;
-            var y = d3.event.pageY;
+            var x = d3_1.event.pageX;
+            var y = d3_1.event.pageY;
             var hit = false;
             _this_1.clickNodes.forEach(function (node) {
                 var dist = Math.sqrt(Math.pow(x - (node[8] * _this_1.scaleTarget + _this_1.width / 2), 2)
@@ -115,7 +115,7 @@ var OverviewVis = /** @class */ (function (_super) {
                     var params = [];
                     if (node[6][_this_1.clusterId].length > 0 &&
                         node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
+                        var rgb = d3_1.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
                         color = "rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")";
                         params = [{
                                 callback: function (d) {
@@ -132,7 +132,7 @@ var OverviewVis = /** @class */ (function (_super) {
                 _this_1.container.selectAll("#tooltip").remove();
             }
         });
-        var textRadius = d3.max(data.nodes, function (d) { return Math.sqrt(Math.pow(d[8], 2) + Math.pow(d[9], 2)); });
+        var textRadius = d3_1.max(data.nodes, function (d) { return Math.sqrt(Math.pow(d[8], 2) + Math.pow(d[9], 2)); });
         var defs = svg.append("defs");
         defs.append("path")
             .attr("id", "textPath")
@@ -188,7 +188,7 @@ var OverviewVis = /** @class */ (function (_super) {
             var color = [85 / 255, 85 / 255, 85 / 255];
             if (node[6][_this_1.clusterId].length > 0 &&
                 node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
+                var rgb = d3_1.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
                 color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
             }
             pointColors.push(color);
@@ -217,7 +217,7 @@ var OverviewVis = /** @class */ (function (_super) {
             .style("stroke", "white");
         this.navPoints = navigation.append("g").selectAll("g").data(this.navData).enter().append("g")
             .attr("class", "overview-navigation-buttons");
-        var navScale = d3.scaleLinear().range([10, 35]).domain(d3.extent(this.navData, function (d) { return d[0]; }));
+        var navScale = d3_1.scaleLinear().range([10, 35]).domain(d3_1.extent(this.navData, function (d) { return d[0]; }));
         this.navData.forEach(function (nd, ni) {
             nd.push(navScale(nd[0]));
             var offset = 0;
@@ -265,8 +265,8 @@ var OverviewVis = /** @class */ (function (_super) {
         this.navPoints.on("click", function (d, i) {
             _this_1.container.selectAll("#tooltip").remove();
             _this_1.currentScale = i;
-            _this_1.interpolation = d3.interpolate(_this_1.scaleTarget, d[5]);
-            _this_1.lineInterpolation = d3.interpolate(_this_1.lineTarget, _this_1.navDist * i + d[3] + d[2] - 5);
+            _this_1.interpolation = d3_1.interpolate(_this_1.scaleTarget, d[5]);
+            _this_1.lineInterpolation = d3_1.interpolate(_this_1.lineTarget, _this_1.navDist * i + d[3] + d[2] - 5);
             _this_1.time = 0;
             _this_1.update(false);
             _this_1.ixTooltipHide();
@@ -310,9 +310,9 @@ var OverviewVis = /** @class */ (function (_super) {
                 var scale = _this_1.scaleTarget;
                 var lineY = _this_1.lineTarget;
                 if (_this_1.time < 1) {
-                    lineY = _this_1.lineInterpolation(d3.easeCubic(_this_1.time));
+                    lineY = _this_1.lineInterpolation(d3_1.easeCubic(_this_1.time));
                     _this_1.lineTarget = lineY;
-                    scale = _this_1.interpolation(d3.easeCubic(_this_1.time));
+                    scale = _this_1.interpolation(d3_1.easeCubic(_this_1.time));
                     _this_1.scaleTarget = scale;
                 }
                 _this_1.navActiveLine.attr("y2", lineY);

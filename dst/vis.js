@@ -40,7 +40,7 @@ exports.Vis = void 0;
 var cfData = require("@crossfoam/data");
 var ui_helpers_1 = require("@crossfoam/ui-helpers");
 var utils_1 = require("@crossfoam/utils");
-var d3 = require("d3");
+var d3_1 = require("d3");
 var Vis = /** @class */ (function () {
     function Vis(stateManager) {
         var _this = this;
@@ -67,26 +67,26 @@ var Vis = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        d3.selectAll("#ixTooltip").style("opacity", 0);
-                        d3.selectAll("#ixMessage").style("opacity", 0);
+                        d3_1.selectAll("#ixTooltip").style("opacity", 0);
+                        d3_1.selectAll("#ixMessage").style("opacity", 0);
                         return [4 /*yield*/, cfData.get("ixTooltip--" + this.visType, "false")
                                 .then(function (alreadyShown) {
                                 if (alreadyShown === "true") {
                                     _this.showIxTooltip = false;
-                                    d3.selectAll("#ixTooltip").remove();
+                                    d3_1.selectAll("#ixTooltip").remove();
                                 }
                                 else {
-                                    d3.selectAll("#ixTooltip").style("opacity", 1);
+                                    d3_1.selectAll("#ixTooltip").style("opacity", 1);
                                 }
                                 return cfData.get("ixMessage--" + _this.visType, "false");
                             })
                                 .then(function (alreadyShown) {
                                 if (alreadyShown === "true") {
                                     _this.showIxMessage = false;
-                                    d3.selectAll("#ixMessage").remove();
+                                    d3_1.selectAll("#ixMessage").remove();
                                 }
                                 else {
-                                    d3.selectAll("#ixMessage").style("opacity", 1);
+                                    d3_1.selectAll("#ixMessage").style("opacity", 1);
                                 }
                                 return "true";
                             })];
@@ -97,12 +97,12 @@ var Vis = /** @class */ (function () {
             });
         }); };
         this.stateManager = stateManager;
-        this.container = d3.select("#visContainer");
-        d3.select("#visHelp")
+        this.container = d3_1.select("#visContainer");
+        d3_1.select("#visHelp")
             .on("click", function () {
             _this.help();
         });
-        d3.select(window).on("resize", function () {
+        d3_1.select(window).on("resize", function () {
             _this.handleResize();
         });
         this.resize(false);
@@ -168,7 +168,7 @@ var Vis = /** @class */ (function () {
             .attr("href", url);
         link.append("span").append("img")
             .on("error", function (d, i, a) {
-            d3.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
+            d3_1.select(a[i]).attr("src", "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png");
         })
             .attr("src", (data.length < 15) ? data[10] : data[14]);
         var name;
@@ -251,7 +251,7 @@ var Vis = /** @class */ (function () {
             .attr("src", "../assets/images/vis--overview--interaction-pointer@2x.png");
     };
     Vis.prototype.ixTooltipHide = function () {
-        d3.selectAll("#ixTooltip").remove();
+        d3_1.selectAll("#ixTooltip").remove();
         this.showIxTooltip = false;
         cfData.set("ixTooltip--" + this.visType, "true");
     };
@@ -263,7 +263,7 @@ var Vis = /** @class */ (function () {
             .style("opacity", 0)
             .html("<a><img src=\"../assets/images/vis--closeButton@2x.png\" /></a><br /><p>" + text + "</p>")
             .on("click", function () {
-            d3.selectAll("#ixMessage").remove();
+            d3_1.selectAll("#ixMessage").remove();
             _this.showIxMessage = false;
             cfData.set("ixMessage--" + _this.visType, "true");
         });
@@ -272,7 +272,7 @@ var Vis = /** @class */ (function () {
     };
     Vis.prototype.lineLegend = function (min, max) {
         // ------ LEGEND
-        d3.selectAll("#line-legend").remove();
+        d3_1.selectAll("#line-legend").remove();
         var legendWidth = 500;
         var legend = this.container.append("div")
             .attr("id", "line-legend")
@@ -309,7 +309,7 @@ var Vis = /** @class */ (function () {
     Vis.prototype.circleLegend = function (min, max, altText) {
         // ------ LEGEND
         var _this = this;
-        d3.selectAll("#circle-legend").remove();
+        d3_1.selectAll("#circle-legend").remove();
         var legendWidth = 500;
         var legend = this.container.append("div")
             .attr("id", "circle-legend")
@@ -367,21 +367,21 @@ var Vis = /** @class */ (function () {
     Vis.prototype.help = function () {
         var _this = this;
         var helpCount = 0;
-        var helpContainer = d3.select("#page").append("div")
+        var helpContainer = d3_1.select("#page").append("div")
             .attr("id", "helpContainer")
             .html("<p></p>");
         var helpButtons = helpContainer.append("div")
             .attr("id", "helpButtons");
         var closeHelp = function () {
-            d3.selectAll("#helpContainer").remove();
+            d3_1.selectAll("#helpContainer").remove();
         };
         var updateHelp = function () {
-            d3.selectAll(".helpButton").style("opacity", 1);
+            d3_1.selectAll(".helpButton").style("opacity", 1);
             if (helpCount === 0) {
-                d3.select("#helpButton-prev").style("opacity", 0.3);
+                d3_1.select("#helpButton-prev").style("opacity", 0.3);
             }
             else if (helpCount === _this.helpData.length - 1) {
-                d3.select("#helpButton-next").style("opacity", 0.3);
+                d3_1.select("#helpButton-next").style("opacity", 0.3);
             }
             helpContainer.select("#helpContainer p").html(_this.helpData[helpCount]);
         };

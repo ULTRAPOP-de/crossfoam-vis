@@ -1,4 +1,4 @@
-import * as d3 from "d3";
+import { color as d3color, event as d3event, zoom, zoomIdentity } from "d3";
 import * as REGL from "regl";
 import { Vis } from "./vis";
 
@@ -42,7 +42,7 @@ class NetworkVis extends Vis {
 
   public zoom(_this) {
     this.container.selectAll("#tooltip").remove();
-    _this.canvasTransform = d3.event.transform;
+    _this.canvasTransform = d3event.transform;
     this.glAnimate();
   }
 
@@ -74,7 +74,7 @@ class NetworkVis extends Vis {
 
       if (node[6][this.clusterId].length > 0 &&
         node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-        const rgb = d3.color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
+        const rgb = d3color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
         color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
       }
 
@@ -92,7 +92,7 @@ class NetworkVis extends Vis {
         if (cNode[13][this.clusterId][clusterKey][0] > 0) {
           let friendColor = [85 / 255, 85 / 255, 85 / 255];
           if (clusterKey in this.paintCluster[this.clusterId].clusters) {
-            const rgb = d3.color(this.paintCluster[this.clusterId].clusters[clusterKey].color).rgb();
+            const rgb = d3color(this.paintCluster[this.clusterId].clusters[clusterKey].color).rgb();
             friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
           }
 
@@ -153,8 +153,8 @@ class NetworkVis extends Vis {
       .attr("id", "overview-svg")
       .style("z-index", 2)
       .on("click", () => {
-        const x = d3.event.pageX;
-        const y = d3.event.pageY;
+        const x = d3event.pageX;
+        const y = d3event.pageY;
 
         let hit = false;
 
@@ -169,7 +169,7 @@ class NetworkVis extends Vis {
             let params = [];
             if (data.nodes[ni][6][this.clusterId].length > 0 &&
               data.nodes[ni][6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-              const rgb = d3.color(this.paintCluster[this.clusterId].clusters[data.nodes[ni][6][this.clusterId]].color)
+              const rgb = d3color(this.paintCluster[this.clusterId].clusters[data.nodes[ni][6][this.clusterId]].color)
                 .rgb();
               color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
               params = [{
@@ -195,7 +195,7 @@ class NetworkVis extends Vis {
           this.container.selectAll("#tooltip").remove();
         }
 
-    }).call(d3.zoom()
+    }).call(zoom()
       .scaleExtent([0.1, 8])
       .on("zoom", () => { this.zoom(this); }),
     );
@@ -269,7 +269,7 @@ class NetworkVis extends Vis {
 
     this.circleLegend(pointSizeMin, pointSizeMax);
 
-    this.canvasTransform = d3.zoomIdentity;
+    this.canvasTransform = zoomIdentity;
 
     this.regl = REGL(document.getElementById("overview-regl-canvas"));
 

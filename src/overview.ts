@@ -1,6 +1,6 @@
 import { formatNumber, logoSpinner } from "@crossfoam/ui-helpers";
 import { debounce } from "@crossfoam/utils";
-import * as d3 from "d3";
+import { color as d3color,  easeCubic, event as d3event, extent, interpolate, max, scaleLinear, select } from "d3";
 import * as REGL from "regl";
 import { Vis } from "./vis";
 
@@ -60,7 +60,7 @@ class OverviewVis extends Vis {
 
   public zoom(_this) {
     this.destroyTooltip();
-    _this.canvasTransform = d3.event.transform;
+    _this.canvasTransform = d3event.transform;
     _this.paint();
   }
 
@@ -93,7 +93,7 @@ class OverviewVis extends Vis {
 
     this.resize(false);
 
-    d3.select(window).on("resize", () => {
+    select(window).on("resize", () => {
       this.handleResize();
     });
 
@@ -107,8 +107,8 @@ class OverviewVis extends Vis {
       .attr("id", "overview-svg")
       .style("z-index", 2)
       .on("click", () => {
-        const x = d3.event.pageX;
-        const y = d3.event.pageY;
+        const x = d3event.pageX;
+        const y = d3event.pageY;
 
         let hit = false;
 
@@ -123,7 +123,7 @@ class OverviewVis extends Vis {
             let params = [];
             if (node[6][this.clusterId].length > 0 &&
               node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-              const rgb = d3.color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
+              const rgb = d3color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
               color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
               params = [{
                 callback: (d) => {
@@ -150,7 +150,7 @@ class OverviewVis extends Vis {
 
       });
 
-    const textRadius = d3.max(data.nodes, (d) => Math.sqrt(Math.pow(d[8], 2) + Math.pow(d[9], 2)));
+    const textRadius = max(data.nodes, (d) => Math.sqrt(Math.pow(d[8], 2) + Math.pow(d[9], 2)));
 
     const defs = svg.append("defs");
 
@@ -221,7 +221,7 @@ class OverviewVis extends Vis {
 
       if (node[6][this.clusterId].length > 0 &&
         node[6][this.clusterId][0] in this.paintCluster[this.clusterId].clusters) {
-        const rgb = d3.color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
+        const rgb = d3color(this.paintCluster[this.clusterId].clusters[node[6][this.clusterId]].color).rgb();
         color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
       }
 
@@ -259,7 +259,7 @@ class OverviewVis extends Vis {
     this.navPoints = navigation.append("g").selectAll("g").data(this.navData).enter().append("g")
       .attr("class", "overview-navigation-buttons");
 
-    const navScale = d3.scaleLinear().range([10, 35]).domain(d3.extent(this.navData, (d) => d[0]));
+    const navScale = scaleLinear().range([10, 35]).domain(extent(this.navData, (d) => d[0]));
 
     this.navData.forEach((nd, ni) => {
       nd.push(navScale(nd[0]));
@@ -317,8 +317,8 @@ class OverviewVis extends Vis {
     this.navPoints.on("click", (d, i) => {
       this.container.selectAll("#tooltip").remove();
       this.currentScale = i;
-      this.interpolation = d3.interpolate(this.scaleTarget, d[5]);
-      this.lineInterpolation = d3.interpolate(this.lineTarget, this.navDist * i + d[3] + d[2] - 5);
+      this.interpolation = interpolate(this.scaleTarget, d[5]);
+      this.lineInterpolation = interpolate(this.lineTarget, this.navDist * i + d[3] + d[2] - 5);
       this.time = 0;
       this.update(false);
       this.ixTooltipHide();
@@ -418,10 +418,10 @@ class OverviewVis extends Vis {
         let lineY = this.lineTarget;
 
         if (this.time < 1) {
-          lineY = this.lineInterpolation(d3.easeCubic(this.time));
+          lineY = this.lineInterpolation(easeCubic(this.time));
           this.lineTarget = lineY;
 
-          scale = this.interpolation(d3.easeCubic(this.time));
+          scale = this.interpolation(easeCubic(this.time));
           this.scaleTarget = scale;
         }
 

@@ -14,7 +14,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkVis = void 0;
-var d3 = require("d3");
+var d3_1 = require("d3");
 var REGL = require("regl");
 var vis_1 = require("./vis");
 var NetworkVis = /** @class */ (function (_super) {
@@ -44,7 +44,7 @@ var NetworkVis = /** @class */ (function (_super) {
     };
     NetworkVis.prototype.zoom = function (_this) {
         this.container.selectAll("#tooltip").remove();
-        _this.canvasTransform = d3.event.transform;
+        _this.canvasTransform = d3_1.event.transform;
         this.glAnimate();
     };
     NetworkVis.prototype.build = function (data, centralNode) {
@@ -68,7 +68,7 @@ var NetworkVis = /** @class */ (function (_super) {
             var color = [85 / 255, 85 / 255, 85 / 255];
             if (node[6][_this_1.clusterId].length > 0 &&
                 node[6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
+                var rgb = d3_1.color(_this_1.paintCluster[_this_1.clusterId].clusters[node[6][_this_1.clusterId]].color).rgb();
                 color = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
             }
             pointColors.push(color);
@@ -83,7 +83,7 @@ var NetworkVis = /** @class */ (function (_super) {
                 if (cNode[13][_this_1.clusterId][clusterKey][0] > 0) {
                     var friendColor = [85 / 255, 85 / 255, 85 / 255];
                     if (clusterKey in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color).rgb();
+                        var rgb = d3_1.color(_this_1.paintCluster[_this_1.clusterId].clusters[clusterKey].color).rgb();
                         friendColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255];
                     }
                     pointMultiColors.push(friendColor);
@@ -138,8 +138,8 @@ var NetworkVis = /** @class */ (function (_super) {
             .attr("id", "overview-svg")
             .style("z-index", 2)
             .on("click", function () {
-            var x = d3.event.pageX;
-            var y = d3.event.pageY;
+            var x = d3_1.event.pageX;
+            var y = d3_1.event.pageY;
             var hit = false;
             pointPositions.forEach(function (node, ni) {
                 var dist = Math.sqrt(Math.pow(x - (node[0] * _this_1.canvasTransform.k + _this_1.canvasTransform.x), 2)
@@ -149,7 +149,7 @@ var NetworkVis = /** @class */ (function (_super) {
                     var params = [];
                     if (data.nodes[ni][6][_this_1.clusterId].length > 0 &&
                         data.nodes[ni][6][_this_1.clusterId][0] in _this_1.paintCluster[_this_1.clusterId].clusters) {
-                        var rgb = d3.color(_this_1.paintCluster[_this_1.clusterId].clusters[data.nodes[ni][6][_this_1.clusterId]].color)
+                        var rgb = d3_1.color(_this_1.paintCluster[_this_1.clusterId].clusters[data.nodes[ni][6][_this_1.clusterId]].color)
                             .rgb();
                         color = "rgb(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ")";
                         params = [{
@@ -166,7 +166,7 @@ var NetworkVis = /** @class */ (function (_super) {
             if (!hit) {
                 _this_1.container.selectAll("#tooltip").remove();
             }
-        }).call(d3.zoom()
+        }).call(d3_1.zoom()
             .scaleExtent([0.1, 8])
             .on("zoom", function () { _this_1.zoom(_this_1); }));
         this.visNav = svg.append("g")
@@ -229,7 +229,7 @@ var NetworkVis = /** @class */ (function (_super) {
             .attr("transform", "translate(-4, 23)")
             .html(browser.i18n.getMessage("visProxiesToggleOff"));
         this.circleLegend(pointSizeMin, pointSizeMax);
-        this.canvasTransform = d3.zoomIdentity;
+        this.canvasTransform = d3_1.zoomIdentity;
         this.regl = REGL(document.getElementById("overview-regl-canvas"));
         window.onbeforeunload = function () {
             _this_1.regl.destroy();

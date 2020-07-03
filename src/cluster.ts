@@ -1,4 +1,6 @@
-import * as d3 from "d3";
+import { event as d3event, extent,
+  forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation,
+  min as d3min, scaleLinear, selectAll, zoom, zoomIdentity } from "d3";
 import { Vis } from "./vis";
 
 class ClusterVis extends Vis {
@@ -46,7 +48,7 @@ class ClusterVis extends Vis {
 
   public zoom(_this) {
     this.container.selectAll("#tooltip").remove();
-    _this.canvasTransform = d3.event.transform;
+    _this.canvasTransform = d3event.transform;
     this.paint();
   }
 
@@ -87,7 +89,7 @@ class ClusterVis extends Vis {
     this.canvas = this.container.append("canvas");
     this.ctx = this.canvas.node().getContext("2d");
 
-    this.zoomObj = d3.zoom()
+    this.zoomObj = zoom()
       .scaleExtent([0.1, 8])
       .on("zoom", () => { this.zoom(this); });
 
@@ -264,9 +266,9 @@ class ClusterVis extends Vis {
       });
     });
 
-    const clusterScale = d3.scaleLinear().domain([1, max]).range([5, 40]);
-    this.edgeScale = d3.scaleLinear().domain([0, this.eMax]).range([0, 20]);
-    this.edgeProxyScale = d3.scaleLinear().domain([0, this.ePMax]).range([0, 20]);
+    const clusterScale = scaleLinear().domain([1, max]).range([5, 40]);
+    this.edgeScale = scaleLinear().domain([0, this.eMax]).range([0, 20]);
+    this.edgeProxyScale = scaleLinear().domain([0, this.ePMax]).range([0, 20]);
 
     // draw edges
     centerGroup.selectAll("line").data(edgeList).enter().append("line")
@@ -327,7 +329,7 @@ class ClusterVis extends Vis {
       this.simulation.stop();
     }
 
-    this.outerSvg.call(this.zoomObj.transform, d3.zoomIdentity);
+    this.outerSvg.call(this.zoomObj.transform, zoomIdentity);
 
     this.graph = {
       links: [],
@@ -342,8 +344,8 @@ class ClusterVis extends Vis {
   public setupClick() {
     this.outerSvg.on("click", () => {
       if (this.level > 0) {
-        const x = d3.event.pageX;
-        const y = d3.event.pageY;
+        const x = d3event.pageX;
+        const y = d3event.pageY;
         const hit = this.hitTest(x, y);
 
         if (hit && hit[1] !== "cluster") {
@@ -388,13 +390,13 @@ class ClusterVis extends Vis {
   }
 
   public setupSimulation(selector: (d: any) => number) {
-    this.simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id((d) => d[0]))
-      .force("charge", d3.forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
-      .force("collide", d3.forceCollide().radius((d) => d.r + 20).iterations(2))
-      .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20));
+    this.simulation = forceSimulation()
+      .force("link", forceLink().id((d) => d[0]))
+      .force("charge", forceManyBody().strength(-250)) // modify in order to reduce outlier rockets
+      .force("collide", forceCollide().radius((d) => d.r + 20).iterations(2))
+      .force("center", forceCenter(this.width / 2, this.height / 2 + 20));
 
-    const rScale = d3.scaleLinear().range([5, this.imageSize / 4]).domain(d3.extent(this.graph.nodes, selector));
+    const rScale = scaleLinear().range([5, this.imageSize / 4]).domain(extent(this.graph.nodes, selector));
 
     this.graph.nodes.forEach((node) => {
       let r = 20;
@@ -626,7 +628,7 @@ class ClusterVis extends Vis {
     });
 
     this.setupSimulation((d) => d.rUserCount);
-    this.circleLegend(d3.min(this.graph.nodes, (d) => d.rUserCount), max, browser.i18n.getMessage("visLegendNumberOfConnections"));
+    this.circleLegend(d3min(this.graph.nodes, (d) => d.rUserCount), max, browser.i18n.getMessage("visLegendNumberOfConnections"));
   }
 
   // TODO: Add debouncer
@@ -677,7 +679,7 @@ class ClusterVis extends Vis {
           });
       }
     } else if (this.level >= 1) {
-      d3.selectAll("#line-legend").remove();
+      selectAll("#line-legend").remove();
 
       this.ctx.save();
       this.ctx.translate(this.canvasTransform.x * 2, this.canvasTransform.y * 2);
@@ -808,7 +810,7 @@ class ClusterVis extends Vis {
       });
 
       this.simulation
-        .force("center", d3.forceCenter(this.width / 2, this.height / 2 + 20))
+        .force("center", forceCenter(this.width / 2, this.height / 2 + 20))
         .alpha(0)
         .restart();
     }
